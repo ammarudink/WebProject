@@ -10875,3 +10875,12 @@ textarea.form-control-lg {
 .b2w:hover{
   color: #fff !important;
 }
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+}
