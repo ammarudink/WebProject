@@ -29,10 +29,10 @@
     app.route({
         view: "cart",
         onReady: function() {
-            renderCart(); // Prikaži proizvode u korpi
+            renderCart(); 
             $(document).off("click", ".remove-from-cart").on("click", ".remove-from-cart", function() {
                 let index = $(this).data("index");
-                console.log("Brisanje proizvoda sa indeksom:", index);
+                console.log("Removing product with index::", index);
                 removeFromCart(index);
             });
             $(document).off("change", ".cart-quantity").on("change", ".cart-quantity", function() {

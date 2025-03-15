@@ -241,8 +241,8 @@
         view: "dashboard",
         onReady: function() {
             updateCartCount();
-            $(document).on('click', '.add-to-cart', function() {
-                addToCart.call(this); 
+            $(document).on('click', '.add-to-cart', function(event) {
+                addToCart(event); 
             });
         }
     });
