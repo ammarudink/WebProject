@@ -243,6 +243,7 @@
             updateCartCount();
             $(document).on('click', '.add-to-cart', function(event) {
                 addToCart(event); 
+                updateCartCount(); // Ensure cart count is updated
             });
         }
     });

@@ -35,12 +35,15 @@
                 console.log("Removing product with index::", index);
                 removeFromCart(index);
             });
-            $(document).off("change", ".cart-quantity").on("change", ".cart-quantity", function() {
+            $(document).off("click", ".quantity-decrease").on("click", ".quantity-decrease", function() {
                 let index = $(this).data("index");
-                let quantity = parseInt($(this).val());
-                updateQuantity(index, quantity);
+                updateQuantity(index, -1);
+            });
+            $(document).off("click", ".quantity-increase").on("click", ".quantity-increase", function() {
+                let index = $(this).data("index");
+                updateQuantity(index, 1);
             });
         }
-});
+    });
     app.run();
 </script>

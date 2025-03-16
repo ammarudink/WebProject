@@ -186,15 +186,23 @@ function addToCart(event) {
     const itemId = button.getAttribute('data-id');
     const itemName = button.getAttribute('data-name');
     const itemPrice = button.getAttribute('data-price');
-    const item = {
-        id: itemId,
-        name: itemName,
-        price: itemPrice
-    };
-    cart.push(item);
+    const existingItemIndex = cart.findIndex(item => item.id === itemId);
+
+    if (existingItemIndex !== -1) {
+        cart[existingItemIndex].quantity += 1;
+    } else {
+        const item = {
+            id: itemId,
+            name: itemName,
+            price: itemPrice,
+            quantity: 1
+        };
+        cart.push(item);
+    }
+
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
-    console.log('Item added to cart:', item);
+    console.log('Item added to cart:', { id: itemId, name: itemName, price: itemPrice, quantity: 1 });
 }
 
 function renderCart() {
@@ -209,16 +217,22 @@ function renderCart() {
     }
     let total = 0;
     cart.forEach((item, index) => {
-        const itemTotal = parseFloat(item.price) || 0; 
+        const itemTotal = parseFloat(item.price) * item.quantity || 0; 
         total += itemTotal;
 
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${item.name}</td>
             <td>${item.price} KM</td>
-            <td>1</td>
+            <td>
+                <div class="input-group input-group-sm" style="width: 120px;">
+                    <button class="btn btn-outline-secondary btn-sm-width quantity-decrease" type="button" data-index="${index}">-</button>
+                    <input type="number" class="form-control cart-quantity text-center" data-index="${index}" value="${item.quantity}" min="1" readonly>
+                    <button class="btn btn-outline-secondary btn-sm-width quantity-increase" type="button" data-index="${index}">+</button>
+                </div>
+            </td>
             <td>${itemTotal.toFixed(2)} KM</td>
-            <td><button class="btn btn-sm btn-danger" onclick="removeFromCart(${index})">Remove</button></td>
+            <td><button class="btn btn-sm btn-danger remove-from-cart" data-index="${index}">Remove</button></td>
         `;
         cartItemsContainer.appendChild(row);
     });
@@ -226,11 +240,26 @@ function renderCart() {
     cartTotal.textContent = `${total.toFixed(2)}KM`;
 }
 
+function updateQuantity(index, change) {
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    if (index >= 0 && index < cart.length) {
+        cart[index].quantity += change;
+        if (cart[index].quantity < 1) {
+            cart[index].quantity = 1;
+        }
+        localStorage.setItem('cart', JSON.stringify(cart));
+        renderCart();
+        updateCartCount();
+    }
+}
+
 function updateCartCount() {
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
     const cartCount = document.getElementById('cart-count');
-    cartCount.textContent = cart.length;
+    const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+    cartCount.textContent = totalQuantity;
 }
+
 function removeFromCart(index) {
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
     if (index >= 0 && index < cart.length) {

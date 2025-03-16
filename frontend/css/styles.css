@@ -10884,3 +10884,6 @@ textarea.form-control-lg {
 .content {
   flex: 1;
 }
+.btn-sm-width {
+  width: 30px;
+}

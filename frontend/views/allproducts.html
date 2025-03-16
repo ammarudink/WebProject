@@ -313,6 +313,10 @@
         view: "allproducts",
         onReady: function() {
             initializeAllProductsPage();
+            $(document).off('click', '.add-to-cart').on('click', '.add-to-cart', function(event) {
+                addToCart(event); 
+                updateCartCount(); // Ensure cart count is updated
+            });
         }
     });
     app.run();
