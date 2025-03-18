@@ -1,0 +1,113 @@
+<div class="container py-5">
+    <h2 class="mb-4 text-center">Shopping Cart</h2>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="cart-items">
+                <!-- Cart items will be dynamically added here -->
+            </tbody>
+        </table>
+    </div>
+    <div class="text-end">
+        <h4>Total: <span id="cart-total">0.00</span></h4>
+        <div class="mb-3 text-end" style="width: 200px; margin-left: auto;">
+            <label class="form-label d-block">Payment Method:</label>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="payment-method" id="payment-cash" value="cash" checked>
+                <label class="form-check-label" for="payment-cash">Cash</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="payment-method" id="payment-credit-card" value="credit-card">
+                <label class="form-check-label" for="payment-credit-card">Credit Card</label>
+            </div>
+        </div>
+        <button class="btn btn-success mt-3" id="checkout-button">Checkout</button>
+    </div>
+</div>
+
+<!-- Credit Card Modal -->
+<div class="modal fade" id="creditCardModal" tabindex="-1" aria-labelledby="creditCardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="creditCardModalLabel">Credit Card Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="credit-card-form">
+                    <div class="mb-3">
+                        <label for="card-number" class="form-label">Card Number</label>
+                        <input type="text" class="form-control" id="card-number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="card-expiry" class="form-label">Expiry Date</label>
+                        <input type="text" class="form-control" id="card-expiry" placeholder="MM/YY" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="card-cvc" class="form-label">CVC</label>
+                        <input type="text" class="form-control" id="card-cvc" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="background-color: #212529; border-color: #212529;">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var app = $.spapp({
+        defaultView: "#cart",
+        templateDir: "frontend/views/"
+    });
+    app.route({
+        view: "cart",
+        onReady: function() {
+            renderCart(); 
+            $(document).off("click", ".remove-from-cart").on("click", ".remove-from-cart", function() {
+                let index = $(this).data("index");
+                console.log("Removing product with index::", index);
+                removeFromCart(index);
+            });
+            $(document).off("click", ".quantity-decrease").on("click", ".quantity-decrease", function() {
+                let index = $(this).data("index");
+                updateQuantity(index, -1);
+            });
+            $(document).off("click", ".quantity-increase").on("click", ".quantity-increase", function() {
+                let index = $(this).data("index");
+                updateQuantity(index, 1);
+            });
+            $('#checkout-button').on('click', function() {
+                const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+                if (!loggedInUser) {
+                    alert('You must be logged in to checkout.');
+                    return;
+                }
+                const paymentMethod = $('input[name="payment-method"]:checked').val();
+                if (paymentMethod === 'cash') {
+                    const orderId = generateOrderId();
+                    alert(`Order successfully placed! Your Order ID is ${orderId}`);
+                } else if (paymentMethod === 'credit-card') {
+                    $('#creditCardModal').modal('show');
+                }
+            });
+            $('#credit-card-form').on('submit', function(event) {
+                event.preventDefault();
+                const orderId = generateOrderId();
+                $('#creditCardModal').modal('hide');
+                alert(`Order successfully placed! Your Order ID is ${orderId}`);
+            });
+        }
+    });
+    app.run();
+
+    function generateOrderId() {
+        return Math.floor(Math.random() * 1000000);
+    }
+</script>

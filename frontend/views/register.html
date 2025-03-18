@@ -1,0 +1,56 @@
+<section class="py-5">
+    <div class="d-flex justify-content-center align-items-center min-vh-100 mt-5 mb-5">
+        <div class="card p-4 shadow-lg" style="width: 400px;">
+            <h3 class="text-center mb-4">Register</h3>
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="mb-3">
+                    <label for="registerName" class="form-label">Name</label>
+                    <input type="text" class="form-control input-focus" id="registerName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="registerEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control input-focus" id="registerEmail" required>
+                </div>
+                <div class="mb-3">
+                    <label for="registerAddress" class="form-label">Address</label>
+                    <input type="text" class="form-control input-focus" id="registerAddress" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control input-focus" id="password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="confirmPassword" class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control input-focus" id="confirmPassword" required oninput="validatePasswords()">
+                    <div id="passwordError" class="text-danger mt-1" style="display: none;">Passwords don't match</div>
+                </div>
+                <div class="mb-3">
+                    <label for="registerRole" class="form-label">Role</label>
+                    <select class="form-select" id="registerRole" required onchange="toggleAdminPasswordField()">
+                        <option value="Customer" selected>Customer</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="adminPasswordField" style="display: none;">
+                    <label for="adminPassword" class="form-label">Admin Password</label>
+                    <input type="password" class="form-control input-focus" id="adminPassword">
+                </div>
+                <button type="submit" class="btn btn-dark w-100">Register</button>
+            </form>
+        </div>
+    </div>
+</section>
+<script>
+        var app = $.spapp({
+            defaultView: "#register",
+            templateDir: "frontend/views/"
+        });
+        app.route({
+            view:"register",
+            onReady: function(){
+                validatePasswords();
+                toggleAdminPasswordField();
+                initializeRegisterForm();
+            }
+        });
+</script>
