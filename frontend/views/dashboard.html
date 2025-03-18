@@ -12,12 +12,16 @@
             <div class="col mb-5">
                 <div class="card h-100">
                     <!-- Product image-->
-                    <img class="card-img-top" src="frontend/assets/PredatorX34Monitor.jpg" alt="PredatorX34Monitor" />
+                    <a href="#product" class="product-link" data-id="1">
+                        <img class="card-img-top" src="frontend/assets/PredatorX34Monitor.jpg" alt="PredatorX34Monitor" />
+                    </a>
                     <!-- Product details-->
                     <div class="card-body p-4">
                         <div class="text-center">
                             <!-- Product name-->
-                            <h5 class="fw-bolder">Predator X34 X5 OLED Gaming Monitor</h5>
+                            <a href="#product" class="product-link" data-id="1">
+                                <h5 class="fw-bolder">Predator X34 X5 OLED Gaming Monitor</h5>
+                            </a>
                             <!-- Product price-->
                             349KM
                         </div>
@@ -40,12 +44,12 @@
                     <!-- Sale badge-->
                     <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
                     <!-- Product image-->
-                    <img class="card-img-top" src="frontend/assets/RedragonSpiderChair.jpg" alt="Redragon Gaming Chair" />
+                        <img class="card-img-top" src="frontend/assets/RedragonSpiderChair.jpg" alt="Redragon Gaming Chair" />
                     <!-- Product details-->
                     <div class="card-body p-4">
                         <div class="text-center">
                             <!-- Product name-->
-                            <h5 class="fw-bolder">Redragon Spider Queen C602 Gaming Chair</h5>
+                                <h5 class="fw-bolder">Redragon Spider Queen C602 Gaming Chair</h5>
                             <!-- Product price-->
                             <span class="text-muted text-decoration-line-through">240KM</span>
                             200KM
@@ -241,11 +245,8 @@
         view: "dashboard",
         onReady: function() {
             updateCartCount();
-            $(document).on('click', '.add-to-cart', function(event) {
-                addToCart(event); 
-                updateCartCount(); // Ensure cart count is updated
-            });
+            attachAddToCartListeners();
+            attachProductLinkListeners();
         }
     });
-    app.run();
 </script>

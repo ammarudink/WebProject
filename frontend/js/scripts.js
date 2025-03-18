@@ -9,12 +9,12 @@
 if (typeof products === 'undefined') {
     var products = [
         { id: 1, name: "Predator X34 X5 OLED Gaming Monitor", price: 349, sale: false, category: "Monitors", image: "frontend/assets/PredatorX34Monitor.jpg" },
-        { id: 2, name: "Redragon Spider Queen C602", price: 200, sale: "240KM", category: "Gaming Chairs", image: "frontend/assets/RedragonSpiderChair.jpg" },
-        { id: 3, name: "SONY Playstation 5", price: 999, sale: "1199KM", category: "Consoles", image: "frontend/assets/Playstation5.jpg" },
+        { id: 2, name: "Redragon Spider Queen C602", price: 240, sale: "200KM", category: "Gaming Chairs", image: "frontend/assets/RedragonSpiderChair.jpg" },
+        { id: 3, name: "SONY Playstation 5", price: 1199, sale: "999KM", category: "Consoles", image: "frontend/assets/Playstation5.jpg" },
         { id: 4, name: "Gamepad SONY Dualsense 5", price: 159, sale: false, category: "Consoles", image: "frontend/assets/Ps5Gamepad.jpg" },
-        { id: 5, name: "SONY Headphones 2025", price: 99, sale: "129KM", category: "Accessories", image: "frontend/assets/SONYHeadphones.jpg" },
+        { id: 5, name: "SONY Headphones 2025", price: 129, sale: "99KM", category: "Accessories", image: "frontend/assets/SONYHeadphones.jpg" },
         { id: 6, name: "ROG Delta S Headset", price: 299, sale: false, category: "Accessories", image: "frontend/assets/ROGDeltaSGamingHeadset.jpg" },
-        { id: 7, name: "Asus ROG Keyboard", price: 299, sale: "359KM", category: "Accessories", image: "frontend/assets/ASUSRogTastatura.jpg" },
+        { id: 7, name: "Asus ROG Keyboard", price: 359, sale: "299KM", category: "Accessories", image: "frontend/assets/ASUSRogTastatura.jpg" },
         { id: 8, name: "RGS-622 Gaming Mouse", price: 79, sale: false, category: "Accessories", image: "frontend/assets/RGS-622GamingMouse.jpg" },
         { id: 9, name: "Odyssey G5 Gaming Monitor", price: 279, sale: false, category: "Monitors", image: "frontend/assets/OdysseyG5Monitor.jpg" },
         { id: 10, name: "Odyssey G7 Gaming Monitor", price: 320, sale: false, category: "Monitors", image: "frontend/assets/OdysseyG7Monitor.jpg" },
@@ -40,7 +40,7 @@ function renderProducts(products, currentPage = 1, itemsPerPage = 9) {
                     <div class="card-body d-flex flex-column justify-content-between text-center">
                         <h5 class="fw-bolder">${product.name}</h5>
                         <div class="price" style="min-height: 30px;">
-                            ${product.sale ? `<span class="text-muted text-decoration-line-through">${product.sale}</span> ` : ''}${product.price}KM
+                            ${product.sale ? `<span class="text-muted text-decoration-line-through">${product.price}KM</span> ${product.sale}` : `${product.price}KM`}
                         </div>
                     </div>
                     <div class="card-footer p-4 pt-0 border-top-0 bg-transparent text-center">
@@ -57,10 +57,7 @@ function renderProducts(products, currentPage = 1, itemsPerPage = 9) {
         productContainer.insertAdjacentHTML('beforeend', productCard);
     });
 
-    document.querySelectorAll('.add-to-cart').forEach(button => {
-        button.removeEventListener('click', addToCart); 
-        button.addEventListener('click', addToCart); 
-    });
+    attachAddToCartListeners();
 }
 
 function renderPagination(totalItems, currentPage = 1, itemsPerPage = 9) {
@@ -128,13 +125,23 @@ function initializeCategoryFilters() {
     }
 }
 
+function attachProductLinkListeners() {
+    document.querySelectorAll('.product-link').forEach(link => {
+        link.addEventListener('click', function(event) {
+            const productId = event.currentTarget.getAttribute('data-id');
+            localStorage.setItem('selectedProductId', productId);
+        });
+    });
+}
+
 function initializeAllProductsPage() {
     initializePagination();
     initializeCategoryFilters();
+    attachProductLinkListeners(); 
 }
 
 function toggleAdminPasswordField() {
-    let role = document.getElementById("role");
+    let role = document.getElementById("registerRole");
     let adminPasswordField = document.getElementById("adminPasswordField");
     if (role && adminPasswordField) {
         adminPasswordField.style.display = role.value === "Admin" ? "block" : "none";
@@ -186,23 +193,32 @@ function addToCart(event) {
     const itemId = button.getAttribute('data-id');
     const itemName = button.getAttribute('data-name');
     const itemPrice = button.getAttribute('data-price');
+    const quantityInput = button.closest('.d-flex') ? button.closest('.d-flex').querySelector('#inputQuantity') : null;
+    const quantity = quantityInput ? parseInt(quantityInput.value, 10) : 1;
     const existingItemIndex = cart.findIndex(item => item.id === itemId);
 
     if (existingItemIndex !== -1) {
-        cart[existingItemIndex].quantity += 1;
+        cart[existingItemIndex].quantity += quantity;
     } else {
         const item = {
             id: itemId,
             name: itemName,
             price: itemPrice,
-            quantity: 1
+            quantity: quantity
         };
         cart.push(item);
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
-    console.log('Item added to cart:', { id: itemId, name: itemName, price: itemPrice, quantity: 1 });
+    console.log('Item added to cart:', { id: itemId, name: itemName, price: itemPrice, quantity: quantity });
+}
+
+function attachAddToCartListeners() {
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.removeEventListener('click', addToCart); 
+        button.addEventListener('click', addToCart); 
+    });
 }
 
 function renderCart() {
@@ -257,7 +273,9 @@ function updateCartCount() {
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
     const cartCount = document.getElementById('cart-count');
     const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-    cartCount.textContent = totalQuantity;
+    if (cartCount) {
+        cartCount.textContent = totalQuantity;
+    }
 }
 
 function removeFromCart(index) {
@@ -269,3 +287,291 @@ function removeFromCart(index) {
         updateCartCount(); 
     }
 }
+
+function fetchOnSaleItems() {
+    const onSaleItems = products.filter(product => product.sale);
+
+    const itemsContainer = document.getElementById('onsale-items');
+    itemsContainer.innerHTML = ''; 
+    onSaleItems.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'col mb-5';
+        itemElement.innerHTML = `
+            <div class="card h-100">
+                ${item.sale ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
+                <img src="${item.image}" class="card-img-top" alt="${item.name}">
+                <div class="card-body p-4">
+                    <div class="text-center">
+                        <h5 class="fw-bolder">${item.name}</h5>
+                        <p class="card-text"><del>${item.price}KM</del> ${item.sale}</p>
+                    </div>
+                </div>
+                <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                    <div class="text-center">
+                        <button class="btn btn-outline-dark mt-auto add-to-cart" 
+                            data-id="${item.id}" 
+                            data-name="${item.name}" 
+                            data-price="${item.price}">
+                            Add to cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        itemsContainer.appendChild(itemElement);
+    });
+}
+
+function fetchRelatedItems(currentProductId, currentProductCategory) {
+    const relatedItems = products.filter(product => product.category === currentProductCategory && product.id !== currentProductId).slice(0, 4);
+
+    const itemsContainer = document.getElementById('related-items');
+    itemsContainer.innerHTML = ''; 
+    relatedItems.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'col mb-5';
+        itemElement.innerHTML = `
+            <div class="card h-100">
+                ${item.sale ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
+                <img src="${item.image}" class="card-img-top" alt="${item.name}">
+                <div class="card-body p-4">
+                    <div class="text-center">
+                        <h5 class="fw-bolder">${item.name}</h5>
+                        <div class="price" style="min-height: 30px;">
+                            ${item.sale ? `<span class="text-muted text-decoration-line-through">${item.sale}</span> ` : ''}${item.price}KM
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                    <div class="text-center">
+                        <button class="btn btn-outline-dark mt-auto add-to-cart" 
+                            data-id="${item.id}" 
+                            data-name="${item.name}" 
+                            data-price="${item.price}">
+                            Add to cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        itemsContainer.appendChild(itemElement);
+    });
+
+    attachAddToCartListeners();
+}
+
+function addToWishlist(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const itemId = button.getAttribute('data-id');
+    const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+    const icon = document.getElementById(`wishlist-icon-${itemId}`);
+    
+    if (wishlist.includes(itemId)) {
+        const index = wishlist.indexOf(itemId);
+        wishlist.splice(index, 1);
+        icon.src = "frontend/assets/nfheart.png";
+    } else {
+        wishlist.push(itemId);
+        icon.src = "frontend/assets/fheart.png";
+    }
+    
+    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+}
+
+function updateWishlistPage() {
+    const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+    const wishlistItemsContainer = document.getElementById('wishlist-items');
+    
+    if (!wishlistItemsContainer) {
+        console.error("Wishlist items container not found");
+        return;
+    }
+
+    wishlistItemsContainer.innerHTML = ''; 
+
+    if (wishlist.length === 0) {
+        wishlistItemsContainer.innerHTML = '<div class="col text-center">Your wishlist is empty.</div>';
+        return;
+    }
+
+    wishlist.forEach(itemId => {
+        const product = products.find(p => p.id == itemId);
+        if (product) {
+            const itemElement = `
+                <div class="col mb-5">
+                    <div class="card h-100">
+                        ${product.sale ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
+                        <a href="#product" class="product-link" data-id="${product.id}">
+                            <img class="card-img-top" src="${product.image}" alt="${product.name}" />
+                        </a>
+                        <div class="card-body p-4">
+                            <div class="text-center">
+                                <a href="#product" class="product-link" data-id="${product.id}">
+                                    <h5 class="fw-bolder">${product.name}</h5>
+                                </a>
+                                <div class="price" style="min-height: 30px;">
+                                    ${product.sale ? `<span class="text-muted text-decoration-line-through">${product.price}KM</span> ${product.sale}` : `${product.price}KM`}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer p-4 pt-0 border-top-0 bg-transparent text-center">
+                            <button class="btn btn-outline-dark mt-auto remove-from-wishlist" data-id="${product.id}">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            wishlistItemsContainer.insertAdjacentHTML('beforeend', itemElement);
+        }
+    });
+
+    attachRemoveFromWishlistListeners();
+}
+
+function attachRemoveFromWishlistListeners() {
+    document.querySelectorAll('.remove-from-wishlist').forEach(button => {
+        button.addEventListener('click', function(event) {
+            const itemId = event.currentTarget.getAttribute('data-id');
+            let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+            wishlist = wishlist.filter(id => id != itemId);
+            localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            updateWishlistPage();
+        });
+    });
+}
+
+function attachAddToWishlistListeners() {
+    document.querySelectorAll('.wishlist-icon').forEach(button => {
+        button.removeEventListener('click', addToWishlist);
+        button.addEventListener('click', addToWishlist);
+    });
+}
+
+function loadProductDetails(productId) {
+    const product = products.find(p => p.id == productId);
+    if (product) {
+        document.querySelector('.display-5.fw-bolder').textContent = product.name;
+        document.querySelector('.fs-5.mb-5 span').textContent = `${product.price}KM`;
+        document.querySelector('.lead').textContent = product.description;
+        document.querySelector('.card-img-top.mb-5.mb-md-0').src = product.image;
+        document.querySelector('.add-to-cart').setAttribute('data-id', product.id);
+        document.querySelector('.add-to-cart').setAttribute('data-name', product.name);
+        document.querySelector('.add-to-cart').setAttribute('data-price', product.price);
+        document.querySelector('.wishlist-icon').setAttribute('data-id', product.id);
+        document.querySelector('.wishlist-icon img').id = `wishlist-icon-${product.id}`;
+        const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+        if (wishlist.includes(product.id.toString())) {
+            document.getElementById(`wishlist-icon-${product.id}`).src = "frontend/assets/fheart.png";
+        } else {
+            document.getElementById(`wishlist-icon-${product.id}`).src = "frontend/assets/nfheart.png";
+        }
+    }
+}
+
+function displayUserProfile() {
+    var user = JSON.parse(localStorage.getItem("user"));
+    document.getElementById("name").value = user.name;
+    document.getElementById("email").value = user.email;
+    document.getElementById("address").value = user.address;
+    document.getElementById("role").value = user.role;
+}
+
+function handleRegister(event) {
+    event.preventDefault();
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+
+    if (users.some(user => user.email === email)) {
+        alert('Email is already registered.');
+        return;
+    }
+
+    if (password.length < 8) {
+        alert('Password must be at least 8 characters long.');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        alert('Passwords do not match.');
+        return;
+    }
+
+    const user = {
+        name: document.getElementById('registerName').value,
+        email: email,
+        address: document.getElementById('registerAddress').value,
+        password: password,
+        role: document.getElementById('registerRole').value
+    };
+
+    users.push(user);
+    localStorage.setItem('users', JSON.stringify(users));
+    localStorage.setItem('loggedInUser', JSON.stringify(user));
+    updateNavBar();
+    window.location.href = 'index.html';
+}
+
+function handleLogin(event) {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const user = users.find(user => user.email === email && user.password === password);
+
+    if (user) {
+        localStorage.setItem('loggedInUser', JSON.stringify(user));
+        updateNavBar();
+        window.location.href = 'index.html';
+    } else {
+        alert('Invalid email or password');
+    }
+}
+
+function logout() {
+    localStorage.removeItem('loggedInUser');
+    resetProfile();
+    updateNavBar();
+    window.location.reload();
+}
+
+function resetProfile() {
+    const nameField = document.getElementById("name");
+    const emailField = document.getElementById("email");
+    const addressField = document.getElementById("address");
+    const roleField = document.getElementById("role");
+
+    if (nameField) nameField.value = '';
+    if (emailField) emailField.value = '';
+    if (addressField) addressField.value = '';
+    if (roleField) roleField.value = '';
+}
+
+function updateNavBar() {
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    const loginNavItem = document.getElementById('loginNavItem');
+    const registerNavItem = document.getElementById('registerNavItem');
+    const userDropdown = document.getElementById('userDropdown');
+    const userName = document.getElementById('userName');
+
+    if (user) {
+        loginNavItem.classList.add('d-none');
+        registerNavItem.classList.add('d-none');
+        userDropdown.classList.remove('d-none');
+        userName.textContent = user.name;
+    } else {
+        loginNavItem.classList.remove('d-none');
+        registerNavItem.classList.remove('d-none');
+        userDropdown.classList.add('d-none');
+        userName.textContent = '';
+    }
+}
+
+document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
+document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+
+attachAddToCartListeners();
+attachAddToWishlistListeners();
+attachProductLinkListeners(); 
+updateCartCount();
