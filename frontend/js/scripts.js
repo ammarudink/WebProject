@@ -469,11 +469,11 @@ function loadProductDetails(productId) {
 }
 
 function displayUserProfile() {
-    var user = JSON.parse(localStorage.getItem("user"));
-    document.getElementById("name").value = user.name;
-    document.getElementById("email").value = user.email;
-    document.getElementById("address").value = user.address;
-    document.getElementById("role").value = user.role;
+    const user = JSON.parse(localStorage.getItem("loggedInUser")) || {};
+    document.getElementById("name").value = user.name || '';
+    document.getElementById("email").value = user.email || '';
+    document.getElementById("address").value = user.address || '';
+    document.getElementById("role").value = user.role || '';
 }
 
 function handleRegister(event) {
@@ -533,19 +533,15 @@ function logout() {
     localStorage.removeItem('loggedInUser');
     resetProfile();
     updateNavBar();
-    window.location.reload();
+    window.location.href = 'index.html';
 }
 
 function resetProfile() {
-    const nameField = document.getElementById("name");
-    const emailField = document.getElementById("email");
-    const addressField = document.getElementById("address");
-    const roleField = document.getElementById("role");
-
-    if (nameField) nameField.value = '';
-    if (emailField) emailField.value = '';
-    if (addressField) addressField.value = '';
-    if (roleField) roleField.value = '';
+    const fields = ["name", "email", "address", "role"];
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) field.value = '';
+    });
 }
 
 function updateNavBar() {
