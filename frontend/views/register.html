@@ -2,7 +2,7 @@
     <div class="d-flex justify-content-center align-items-center min-vh-100 mt-5 mb-5">
         <div class="card p-4 shadow-lg" style="width: 400px;">
             <h3 class="text-center mb-4">Register</h3>
-            <form id="registerForm" onsubmit="handleRegister(event)" method="post">
+            <form id="registerForm" action="/WebProject/backend/dao/test.php" method="POST" onsubmit="return validateRegistration()">
                 <div class="mb-3">
                     <label for="registerName" class="form-label">Name</label>
                     <input type="text" class="form-control input-focus" id="registerName" name="Name" required>
@@ -41,16 +41,15 @@
     </div>
 </section>
 <script>
-        var app = $.spapp({
-            defaultView: "#register",
-            templateDir: "frontend/views/"
-        });
-        app.route({
-            view:"register",
-            onReady: function(){
-                validatePasswords();
-                toggleAdminPasswordField();
-                initializeRegisterForm();
-            }
-        });
+    var app = $.spapp({
+        defaultView: "#register",
+        templateDir: "frontend/views/"
+    });
+    app.route({
+        view: "register",
+        onReady: function() {
+            validatePasswords();
+            toggleAdminPasswordField();
+        }
+    });
 </script>

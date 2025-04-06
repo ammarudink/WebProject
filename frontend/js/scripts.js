@@ -6,9 +6,11 @@
 // This file is intentionally blank
 // Use this file to add JavaScript to your project
 
+console.log("scripts.js loaded successfully");
+
 if (typeof products === 'undefined') {
     var products = [
-        { id: 1, name: "Predator X34 X5 OLED Gaming Monitor", price: 349, sale: false, category: "Monitors", image: "frontend/assets/PredatorX34Monitor.jpg" },
+        { id: 1, name: "Predator X34 X5 OLED Gaming Monitor", price: 349, sale: false, category: "Monitors", image: "/WebProject/frontend/assets/PredatorX34Monitor.jpg" },
         { id: 2, name: "Redragon Spider Queen C602", price: 240, sale: "200KM", category: "Gaming Chairs", image: "frontend/assets/RedragonSpiderChair.jpg" },
         { id: 3, name: "SONY Playstation 5", price: 1199, sale: "999KM", category: "Consoles", image: "frontend/assets/Playstation5.jpg" },
         { id: 4, name: "Gamepad SONY Dualsense 5", price: 159, sale: false, category: "Consoles", image: "frontend/assets/Ps5Gamepad.jpg" },
@@ -24,30 +26,233 @@ if (typeof products === 'undefined') {
 
 var filteredProducts = products;
 
-function renderProducts(products, currentPage = 1, itemsPerPage = 9) {
+function renderProducts(currentPage = 1) {
+    console.log(`renderProducts() called for page ${currentPage}`);
     const productContainer = document.getElementById('product-container');
-    productContainer.innerHTML = '';
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    const paginatedProducts = products.slice(start, end);
+    const pagination = document.getElementById('pagination');
+    const selectedCategories = Array.from(document.querySelectorAll('#category-filters input[type="checkbox"]:checked'))
+        .map(checkbox => checkbox.value);
 
-    paginatedProducts.forEach(product => {
+    const queryParams = new URLSearchParams({
+        action: 'paginated',
+        page: currentPage.toString(),
+        categories: JSON.stringify(selectedCategories)
+    });
+
+    fetch(`/WebProject/backend/dao/test.php?${queryParams}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Fetched products:', data); // Log fetched products
+            productContainer.innerHTML = ''; // Clear existing products
+            pagination.innerHTML = ''; // Clear existing pagination
+
+            if (data.products && Array.isArray(data.products)) {
+                data.products.forEach(product => {
+                    const productCard = `
+                        <div class="col mb-5">
+                            <div class="card h-100">
+                                ${product.SalePrice ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
+                                <img class="card-img-top" src="${product.Images}" alt="${product.Name}" />
+                                <div class="card-body p-4">
+                                    <div class="text-center">
+                                        <h5 class="fw-bolder">${product.Name}</h5>
+                                        <div class="price">
+                                            ${product.SalePrice ? 
+                                                `<span class="text-muted text-decoration-line-through">${product.Price}KM</span> ${product.SalePrice}KM` : 
+                                                `${product.Price}KM`}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                                    <div class="text-center">
+                                        <button class="btn btn-outline-dark mt-auto add-to-cart" 
+                                            data-id="${product.ProductID}" 
+                                            data-name="${product.Name}" 
+                                            data-price="${product.SalePrice || product.Price}">
+                                            Add to cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    productContainer.insertAdjacentHTML('beforeend', productCard);
+                });
+
+                attachAddToCartListeners();
+            } else {
+                productContainer.innerHTML = '<p class="text-center">No products found.</p>';
+                console.log("No products found.");
+            }
+
+            // Render pagination
+            for (let i = 1; i <= data.totalPages; i++) {
+                const active = i === data.currentPage ? 'active' : '';
+                const pageItem = `
+                    <li class="page-item ${active}">
+                        <a class="page-link" href="#" data-page="${i}">${i}</a>
+                    </li>
+                `;
+                pagination.insertAdjacentHTML('beforeend', pageItem);
+            }
+
+            // Add previous and next buttons
+            pagination.insertAdjacentHTML('afterbegin', `
+                <li class="page-item ${data.currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${data.currentPage - 1}">Previous</a>
+                </li>
+            `);
+            pagination.insertAdjacentHTML('beforeend', `
+                <li class="page-item ${data.currentPage === data.totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${data.currentPage + 1}">Next</a>
+                </li>
+            `);
+
+            // Attach pagination listeners
+            pagination.querySelectorAll('.page-link').forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const page = parseInt(this.getAttribute('data-page'));
+                    if (!isNaN(page)) {
+                        renderProducts(page);
+                    }
+                });
+            });
+        })
+        .catch(error => console.error('Error fetching products:', error));
+}
+
+function renderPagination(totalPages, currentPage) {
+    const pagination = document.getElementById('pagination');
+    if (!pagination) return;
+    
+    pagination.innerHTML = '';
+    
+    const prevDisabled = currentPage === 1 ? 'disabled' : '';
+    const nextDisabled = currentPage === totalPages ? 'disabled' : '';
+    
+    pagination.innerHTML = `
+        <li class="page-item ${prevDisabled}">
+            <a class="page-link" href="#" data-page="${currentPage - 1}">Previous</a>
+        </li>
+    `;
+
+    for (let i = 1; i <= totalPages; i++) {
+        const active = i === currentPage ? 'active' : '';
+        pagination.innerHTML += `
+            <li class="page-item ${active}">
+                <a class="page-link" href="#" data-page="${i}">${i}</a>
+            </li>
+        `;
+    }
+
+    pagination.innerHTML += `
+        <li class="page-item ${nextDisabled}">
+            <a class="page-link" href="#" data-page="${currentPage + 1}">Next</a>
+        </li>
+    `;
+
+    // Attach click handlers
+    pagination.querySelectorAll('.page-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (this.parentElement.classList.contains('disabled')) return;
+            
+            const newPage = parseInt(this.getAttribute('data-page'));
+            if (!isNaN(newPage)) {
+                localStorage.setItem('currentPage', newPage);
+                renderProducts(newPage);
+            }
+        });
+    });
+}
+
+function initializePagination() {
+    const pagination = document.getElementById('pagination');
+    if (!pagination) return;
+
+    function handlePageClick(event) {
+        event.preventDefault();
+        const target = event.target.closest('.page-link');
+        if (!target) return;
+
+        let currentPage = parseInt(localStorage.getItem('currentPage') || '1');
+        const page = target.getAttribute('data-page');
+        
+        if (page === 'prev') {
+            if (currentPage > 1) currentPage--;
+        } else if (page === 'next') {
+            currentPage++;
+        } else {
+            currentPage = parseInt(page);
+        }
+        
+        localStorage.setItem('currentPage', currentPage);
+        renderProducts(currentPage);
+    }
+
+    pagination.removeEventListener('click', handlePageClick);
+    pagination.addEventListener('click', handlePageClick);
+    renderProducts(parseInt(localStorage.getItem('currentPage') || '1'));
+}
+
+function initializeCategoryFilters() {
+    const categoryFilters = document.getElementById('category-filters');
+    if (!categoryFilters) return;
+
+    function filterProductsByCategory() {
+        const selectedCategories = Array.from(categoryFilters.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(checkbox => checkbox.nextElementSibling.textContent.trim());
+        
+        localStorage.setItem('currentPage', '1');
+        
+        const queryParams = new URLSearchParams({
+            action: 'paginated',
+            page: '1'
+        });
+        
+        if (selectedCategories.length > 0) {
+            queryParams.append('categories', JSON.stringify(selectedCategories));
+        }
+
+        fetch(`/WebProject/backend/dao/test.php?${queryParams}`)
+        .then(response => response.json())
+        .then(data => {
+            renderProductsWithData(data);
+        })
+        .catch(error => {
+            console.error('Error filtering products:', error);
+        });
+    }
+
+    categoryFilters.removeEventListener('change', filterProductsByCategory);
+    categoryFilters.addEventListener('change', filterProductsByCategory);
+}
+
+function renderProductsWithData(data) {
+    const productContainer = document.getElementById('product-container');
+    if (!productContainer) return;
+    
+    productContainer.innerHTML = '';
+    data.products.forEach(product => {
         const productCard = `
             <div class="col mb-3">
                 <div class="card h-100 d-flex flex-column">
-                    ${product.sale ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
-                    <img class="card-img-top" src="${product.image}" alt="${product.name}" />
+                    ${product.SalePrice ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
+                    <img class="card-img-top" src="${product.Images}" alt="${product.Name}" />
                     <div class="card-body d-flex flex-column justify-content-between text-center">
-                        <h5 class="fw-bolder">${product.name}</h5>
+                        <h5 class="fw-bolder">${product.Name}</h5>
                         <div class="price" style="min-height: 30px;">
-                            ${product.sale ? `<span class="text-muted text-decoration-line-through">${product.price}KM</span> ${product.sale}` : `${product.price}KM`}
+                            ${product.SalePrice ? 
+                                `<span class="text-muted text-decoration-line-through">${product.Price}KM</span> ${product.SalePrice}KM` : 
+                                `${product.Price}KM`}
                         </div>
                     </div>
                     <div class="card-footer p-4 pt-0 border-top-0 bg-transparent text-center">
                         <button class="btn btn-outline-dark mt-auto add-to-cart" 
-                            data-id="${product.id}" 
-                            data-name="${product.name}" 
-                            data-price="${product.price}">
+                            data-id="${product.ProductID}" 
+                            data-name="${product.Name}" 
+                            data-price="${product.SalePrice || product.Price}">
                             Add to cart
                         </button>
                     </div>
@@ -56,72 +261,11 @@ function renderProducts(products, currentPage = 1, itemsPerPage = 9) {
         `;
         productContainer.insertAdjacentHTML('beforeend', productCard);
     });
-
+    
     attachAddToCartListeners();
-}
-
-function renderPagination(totalItems, currentPage = 1, itemsPerPage = 9) {
-    const pagination = document.getElementById('pagination');
-    pagination.innerHTML = '';
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-    const prevPage = `<li class="page-item"><a class="page-link" href="#" data-page="prev">Previous</a></li>`;
-    pagination.insertAdjacentHTML('beforeend', prevPage);
-
-    for (let i = 1; i <= totalPages; i++) {
-        const pageItem = `<li class="page-item"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
-        pagination.insertAdjacentHTML('beforeend', pageItem);
-    }
-
-    const nextPage = `<li class="page-item"><a class="page-link" href="#" data-page="next">Next</a></li>`;
-    pagination.insertAdjacentHTML('beforeend', nextPage);
-}
-
-function initializePagination() {
-    const itemsPerPage = 9;
-    let currentPage = 1;
-
-    function handlePageClick(event) {
-        event.preventDefault();
-        const page = event.target.getAttribute('data-page');
-        if (page === 'prev') {
-            if (currentPage > 1) currentPage--;
-        } else if (page === 'next') {
-            if (currentPage < Math.ceil(filteredProducts.length / itemsPerPage)) currentPage++;
-        } else {
-            currentPage = parseInt(page);
-        }
-        renderProducts(filteredProducts, currentPage, itemsPerPage);
-    }
-
-    const pagination = document.getElementById('pagination');
-    if (pagination) {
-        pagination.removeEventListener('click', handlePageClick); 
-        pagination.addEventListener('click', handlePageClick); 
-        renderPagination(filteredProducts.length, currentPage, itemsPerPage);
-        renderProducts(filteredProducts, currentPage, itemsPerPage);
-    }
-}
-
-function initializeCategoryFilters() {
-    const categoryFilters = document.getElementById('category-filters');
-
-    function filterProductsByCategory() {
-        const selectedCategories = Array.from(categoryFilters.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(checkbox => checkbox.nextElementSibling.textContent);
-        filteredProducts = selectedCategories.length > 0 
-            ? products.filter(product => selectedCategories.includes(product.category)) 
-            : products;
-        renderProducts(filteredProducts);
-        renderPagination(filteredProducts.length);
-    }
-
-    if (categoryFilters) {
-        categoryFilters.removeEventListener('change', filterProductsByCategory); 
-        categoryFilters.addEventListener('change', filterProductsByCategory); 
-
-        renderProducts(filteredProducts);
-        renderPagination(filteredProducts.length);
+    
+    if (data.totalPages > 1) {
+        renderPagination(data.totalPages, parseInt(localStorage.getItem('currentPage') || '1'));
     }
 }
 
@@ -133,11 +277,119 @@ function attachProductLinkListeners() {
         });
     });
 }
-
+// Removed invalid line
 function initializeAllProductsPage() {
-    initializePagination();
-    initializeCategoryFilters();
-    attachProductLinkListeners(); 
+    console.log('initializeAllProductsPage() called');
+    fetchCategories(); // Fetch categories from the backend
+    renderProducts(1); // Fetch and render products for page 1
+}
+
+function fetchCategories() {
+    const categoryFilters = document.querySelector('#category-filters .list-group');
+    if (!categoryFilters) {
+        console.warn("Category filters element not found. Skipping fetchCategories.");
+        return;
+    }
+
+    fetch('/WebProject/backend/dao/test.php?action=getCategories')
+        .then(response => response.json())
+        .then(categories => {
+            categoryFilters.innerHTML = categories.map(category => `
+                <li class="list-group-item">
+                    <input class="form-check-input me-1" type="checkbox" value="${category}" id="category-${category}">
+                    <label class="form-check-label" for="category-${category}">${category}</label>
+                </li>
+            `).join('');
+            categoryFilters.addEventListener('change', () => renderProducts(1));
+        })
+        .catch(error => console.error('Error fetching categories:', error));
+}
+
+function renderProducts(page) {
+    const productContainer = document.getElementById('product-container');
+    const pagination = document.getElementById('pagination');
+    if (!productContainer || !pagination) {
+        console.warn("Product container or pagination element not found. Skipping renderProducts.");
+        return;
+    }
+
+    const selectedCategories = Array.from(document.querySelectorAll('#category-filters input[type="checkbox"]:checked'))
+        .map(checkbox => checkbox.value);
+    const queryParams = new URLSearchParams({
+        action: 'paginated',
+        page,
+        categories: JSON.stringify(selectedCategories),
+        cacheBuster: new Date().getTime() // Add cache-busting parameter
+    });
+
+    fetch(`/WebProject/backend/dao/test.php?${queryParams}`)
+        .then(response => response.json())
+        .then(data => {
+            productContainer.innerHTML = data.products.map(product => `
+                <div class="col mb-5">
+                    <div class="card h-100">
+                        ${product.SalePrice ? '<div class="badge bg-dark text-white position-absolute" style="top: 10px; right: 10px;">Sale</div>' : ''}
+                        <a href="#product" class="product-link" onclick="storeProductDetails(${product.ProductID}, '${product.Name.replace(/'/g, "\\'")}', '${product.Price}', '${product.Images}', '${product.SalePrice || ''}', '${product.Description ? product.Description.replace(/'/g, "\\'") : ''}')">
+                            <img class="card-img-top" src="${product.Images}" alt="${product.Name}">
+                        </a>
+                        <div class="card-body text-center">
+                            <h5 class="fw-bolder">${product.Name}</h5>
+                            <div class="price">
+                                ${product.SalePrice ? 
+                                    `<span class="text-muted text-decoration-line-through">${product.Price}KM</span> ${product.SalePrice}KM` : 
+                                    `${product.Price}KM`}
+                            </div>
+                        </div>
+                        <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                            <div class="text-center">
+                                <button class="btn btn-outline-dark mt-auto add-to-cart" 
+                                    data-id="${product.ProductID}" 
+                                    data-name="${product.Name}" 
+                                    data-price="${product.SalePrice || product.Price}">
+                                    Add to cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            pagination.innerHTML = `
+                <li class="page-item ${data.currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0);" onclick="renderProducts(${data.currentPage - 1})">Previous</a>
+                </li>
+            `;
+
+            for (let i = 1; i <= data.totalPages; i++) {
+                pagination.innerHTML += `
+                    <li class="page-item ${i === data.currentPage ? 'active' : ''}">
+                        <a class="page-link" href="javascript:void(0);" onclick="renderProducts(${i})">${i}</a>
+                    </li>
+                `;
+            }
+
+            pagination.innerHTML += `
+                <li class="page-item ${data.currentPage === data.totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0);" onclick="renderProducts(${data.currentPage + 1})">Next</a>
+                </li>
+            `;
+
+            attachAddToCartListeners(); // Ensure "Add to cart" buttons have event listeners
+        })
+        .catch(error => console.error('Error fetching products:', error));
+}
+
+function storeProductDetails(id, name, price, image, salePrice, description) {
+    const productDetails = {
+        id,
+        name,
+        price: parseFloat(price), // Ensure price is stored as a number
+        image, // No fallback, as every product has an image
+        salePrice: salePrice ? parseFloat(salePrice) : null, // Ensure salePrice is stored as a number or null
+        description: description || "No description available." // Fallback if description is missing
+    };
+    console.log('Storing product details:', productDetails); // Debugging log
+    localStorage.setItem('selectedProduct', JSON.stringify(productDetails));
 }
 
 function toggleAdminPasswordField() {
@@ -289,36 +541,44 @@ function removeFromCart(index) {
 }
 
 function fetchOnSaleItems() {
-    const onSaleItems = products.filter(product => product.sale);
-
     const itemsContainer = document.getElementById('onsale-items');
-    itemsContainer.innerHTML = ''; 
-    onSaleItems.forEach(item => {
-        const itemElement = document.createElement('div');
-        itemElement.className = 'col mb-5';
-        itemElement.innerHTML = `
-            <div class="card h-100">
-                ${item.sale ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
-                <img src="${item.image}" class="card-img-top" alt="${item.name}">
-                <div class="card-body p-4">
-                    <div class="text-center">
-                        <h5 class="fw-bolder">${item.name}</h5>
-                        <p class="card-text"><del>${item.price}KM</del> ${item.sale}</p>
+    if (!itemsContainer) return;
+
+    fetch('/WebProject/backend/dao/test.php?action=onsale')
+    .then(response => response.json())
+    .then(products => {
+        itemsContainer.innerHTML = '';
+        products.forEach(product => {
+            const itemElement = `
+                <div class="col mb-5">
+                    <div class="card h-100">
+                        <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
+                        <img src="${product.Images}" class="card-img-top" alt="${product.Name}">
+                        <div class="card-body p-4">
+                            <div class="text-center">
+                                <h5 class="fw-bolder">${product.Name}</h5>
+                                <div class="price" style="min-height: 30px;">
+                                    <span class="text-muted text-decoration-line-through">${product.Price}KM</span> 
+                                    ${product.SalePrice}KM
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                            <div class="text-center">
+                                <button class="btn btn-outline-dark mt-auto add-to-cart" 
+                                    data-id="${product.ProductID}" 
+                                    data-name="${product.Name}" 
+                                    data-price="${product.SalePrice}">
+                                    Add to cart
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                    <div class="text-center">
-                        <button class="btn btn-outline-dark mt-auto add-to-cart" 
-                            data-id="${item.id}" 
-                            data-name="${item.name}" 
-                            data-price="${item.price}">
-                            Add to cart
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        itemsContainer.appendChild(itemElement);
+            `;
+            itemsContainer.insertAdjacentHTML('beforeend', itemElement);
+        });
+        attachAddToCartListeners();
     });
 }
 
@@ -448,100 +708,218 @@ function attachAddToWishlistListeners() {
 }
 
 function loadProductDetails(productId) {
-    const product = products.find(p => p.id == productId);
-    if (product) {
-        document.querySelector('.display-5.fw-bolder').textContent = product.name;
-        document.querySelector('.fs-5.mb-5 span').textContent = `${product.price}KM`;
-        document.querySelector('.lead').textContent = product.description;
-        document.querySelector('.card-img-top.mb-5.mb-md-0').src = product.image;
-        document.querySelector('.add-to-cart').setAttribute('data-id', product.id);
-        document.querySelector('.add-to-cart').setAttribute('data-name', product.name);
-        document.querySelector('.add-to-cart').setAttribute('data-price', product.price);
-        document.querySelector('.wishlist-icon').setAttribute('data-id', product.id);
-        document.querySelector('.wishlist-icon img').id = `wishlist-icon-${product.id}`;
-        const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-        if (wishlist.includes(product.id.toString())) {
-            document.getElementById(`wishlist-icon-${product.id}`).src = "frontend/assets/fheart.png";
-        } else {
-            document.getElementById(`wishlist-icon-${product.id}`).src = "frontend/assets/nfheart.png";
-        }
+    console.log(`Fetching product details for productId: ${productId}`);
+    fetch(`/WebProject/backend/dao/test.php?view=product&productId=${productId}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Product details fetched:', data);
+            if (data.product) {
+                // Populate product details
+                document.getElementById('product-image').src = data.product.Images || '/WebProject/frontend/assets/noImage.png';
+                document.getElementById('product-name').textContent = data.product.Name || 'Product Name';
+                document.getElementById('product-price').textContent = data.product.SalePrice
+                    ? `${data.product.SalePrice}KM (Sale)`
+                    : `${data.product.Price}KM`;
+                document.getElementById('product-description').textContent = data.product.Description || 'No description available.';
+                document.getElementById('add-to-cart').setAttribute('data-id', data.product.ProductID);
+                document.getElementById('add-to-cart').setAttribute('data-name', data.product.Name);
+                document.getElementById('add-to-cart').setAttribute('data-price', data.product.SalePrice || data.product.Price);
+
+                // Load related products
+                loadRelatedProducts(data.relatedProducts);
+            } else {
+                console.error('Product not found:', data.error || 'Unknown error');
+            }
+        })
+        .catch(error => console.error('Error fetching product details:', error));
+}
+
+function loadRelatedProducts(relatedProducts) {
+    const relatedItemsContainer = document.getElementById('related-items');
+    relatedItemsContainer.innerHTML = ''; // Clear existing items
+    if (relatedProducts && relatedProducts.length > 0) {
+        relatedProducts.forEach(product => {
+            const productCard = `
+                <div class="col mb-5">
+                    <div class="card h-100">
+                        ${product.SalePrice ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
+                        <img class="card-img-top" src="${product.Images || '/WebProject/frontend/assets/noImage.png'}" alt="${product.Name}" />
+                        <div class="card-body p-4">
+                            <div class="text-center">
+                                <h5 class="fw-bolder">${product.Name}</h5>
+                                <div class="price">
+                                    ${product.SalePrice
+                                        ? `<span class="text-muted text-decoration-line-through">${product.Price}KM</span> ${product.SalePrice}KM`
+                                        : `${product.Price}KM`}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                            <div class="text-center">
+                                <a class="btn btn-outline-dark mt-auto" href="#product" onclick="storeProductDetails(${product.ProductID}, '${product.Name}', '${product.Price}', '${product.Images}', '${product.SalePrice || ''}', '${product.Description || ''}')">View Product</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            relatedItemsContainer.insertAdjacentHTML('beforeend', productCard);
+        });
+    } else {
+        relatedItemsContainer.innerHTML = '<p class="text-center">No related products found.</p>';
     }
 }
 
 function displayUserProfile() {
     const user = JSON.parse(localStorage.getItem("loggedInUser")) || {};
-    document.getElementById("name").value = user.name || '';
-    document.getElementById("email").value = user.email || '';
-    document.getElementById("address").value = user.address || '';
-    document.getElementById("role").value = user.role || '';
+    
+    if (user.UserID) {
+        fetch(`/WebProject/backend/dao/test.php?action=getProfile&userId=${user.UserID}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("name").value = data.user.name;
+                    document.getElementById("email").value = data.user.email;
+                    document.getElementById("address").value = data.user.address;
+                    document.getElementById("role").value = data.user.role;
+                    
+                    // Show admin controls if user is admin
+                    if (data.user.role === 'Admin') {
+                        document.getElementById('adminControls').style.display = 'block';
+                        // Load products into select when modal opens
+                        $('#updateProductModal').on('show.bs.modal', loadProductsIntoSelect);
+                    }
+                } else {
+                    alert('Failed to load profile data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to load profile data');
+            });
+    }
 }
 
-function handleRegister(event) {
-    event.preventDefault();
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    const users = JSON.parse(localStorage.getItem('users')) || [];
+function loadProductsIntoSelect() {
+    console.log('Loading products...');
+    fetch('/WebProject/backend/dao/test.php?action=getAllProducts')
+        .then(response => {
+            console.log('Response received:', response);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Data received:', data);
+            if (data.success) {
+                const select = document.getElementById('productSelect');
+                select.innerHTML = '';
+                data.products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.ProductID; // Ensure ProductID matches your database column
+                    option.textContent = `${product.Name} - Current Price: ${product.Price}KM${product.SalePrice ? ' (On Sale: ' + product.SalePrice + 'KM)' : ''}`;
+                    select.appendChild(option);
+                });
+            } else {
+                console.error('Failed to get products:', data.message);
+            }
+        })
+        .catch(error => console.error('Error loading products:', error));
+}
 
-    if (users.some(user => user.email === email)) {
-        alert('Email is already registered.');
-        return;
+function updateProduct() {
+    const formData = new FormData();
+    formData.append('action', 'updateProduct');
+    formData.append('productId', document.getElementById('productSelect').value);
+    formData.append('price', document.getElementById('updatePrice').value);
+    formData.append('salePrice', document.getElementById('updateSalePrice').value);
+
+    console.log('Updating product with data:', {
+        productId: formData.get('productId'),
+        price: formData.get('price'),
+        salePrice: formData.get('salePrice')
+    });
+
+    fetch('/WebProject/backend/dao/test.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Product updated successfully!');
+            $('#updateProductModal').modal('hide');
+            document.getElementById('updateProductForm').reset();
+            loadProductsIntoSelect(); // Refresh the product list
+        } else {
+            alert('Failed to update product');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update product');
+    });
+}
+
+function deleteUser() {
+    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+        const user = JSON.parse(localStorage.getItem("loggedInUser")) || {};
+        if (user.UserID) {
+            fetch(`/WebProject/backend/dao/test.php?UserID=${user.UserID}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    localStorage.removeItem('loggedInUser');
+                    window.location.href = '/WebProject/index.html';
+                    updateNavBar();
+                } else {
+                    alert('Failed to delete user');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to delete user');
+            });
+        }
     }
-
-    if (password.length < 8) {
-        alert('Password must be at least 8 characters long.');
-        return;
-    }
-
-    if (password !== confirmPassword) {
-        alert('Passwords do not match.');
-        return;
-    }
-
-    const user = {
-        name: document.getElementById('registerName').value,
-        email: email,
-        address: document.getElementById('registerAddress').value,
-        password: password,
-        role: document.getElementById('registerRole').value
-    };
-
-    users.push(user);
-    localStorage.setItem('users', JSON.stringify(users));
-    localStorage.setItem('loggedInUser', JSON.stringify(user));
-    updateNavBar();
-    window.location.href = 'index.html';
 }
 
 function handleLogin(event) {
     event.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    const users = JSON.parse(localStorage.getItem('users')) || [];
-    const user = users.find(user => user.email === email && user.password === password);
+    
+    const formData = new FormData();
+    formData.append('email', document.getElementById('loginEmail').value);
+    formData.append('password', document.getElementById('loginPassword').value);
 
-    if (user) {
-        localStorage.setItem('loggedInUser', JSON.stringify(user));
-        updateNavBar();
-        window.location.href = 'index.html';
-    } else {
-        alert('Invalid email or password');
-    }
+    fetch('/WebProject/backend/dao/test.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            localStorage.setItem('loggedInUser', JSON.stringify(data.user));
+            document.getElementById('loginForm').reset();
+            updateNavBar();
+            window.location.hash = '#dashboard';
+        } else {
+            alert(data.message || 'Login failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Login failed');
+    });
 }
 
 function logout() {
     localStorage.removeItem('loggedInUser');
-    resetProfile();
     updateNavBar();
     window.location.href = 'index.html';
-}
-
-function resetProfile() {
-    const fields = ["name", "email", "address", "role"];
-    fields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (field) field.value = '';
-    });
 }
 
 function updateNavBar() {
@@ -552,22 +930,192 @@ function updateNavBar() {
     const userName = document.getElementById('userName');
 
     if (user) {
-        loginNavItem.classList.add('d-none');
-        registerNavItem.classList.add('d-none');
-        userDropdown.classList.remove('d-none');
-        userName.textContent = user.name;
+        if (loginNavItem) loginNavItem.classList.add('d-none');
+        if (registerNavItem) registerNavItem.classList.add('d-none');
+        if (userDropdown) userDropdown.classList.remove('d-none');
+        if (userName) userName.textContent = user.name;
     } else {
-        loginNavItem.classList.remove('d-none');
-        registerNavItem.classList.remove('d-none');
-        userDropdown.classList.add('d-none');
-        userName.textContent = '';
+        if (loginNavItem) loginNavItem.classList.remove('d-none');
+        if (registerNavItem) registerNavItem.classList.remove('d-none');
+        if (userDropdown) userDropdown.classList.add('d-none');
+        if (userName) userName.textContent = '';
     }
 }
 
-document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
-document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+function validateRegistration() {
+    let password = document.getElementById("password");
+    let confirmPassword = document.getElementById("confirmPassword");
+    let role = document.getElementById("registerRole");
+    let adminPassword = document.getElementById("adminPassword");
 
+    if (password.value !== confirmPassword.value) {
+        alert("Passwords don't match!");
+        return false;
+    }
+
+    if (role.value === "Admin") {
+        const correctAdminPassword = "adminadmin";
+        if (adminPassword.value !== correctAdminPassword) {
+            alert("Incorrect Admin Password!");
+            return false;
+        }
+    }
+    return true;
+}
+
+function displayUserProfile() {
+    const user = JSON.parse(localStorage.getItem("loggedInUser")) || {};
+    document.getElementById("name").value = user.name || '';
+    document.getElementById("email").value = user.email || '';
+    document.getElementById("address").value = user.address || '';;
+    document.getElementById("role").value = user.role || '';
+    
+    // Show admin controls if user is admin
+    if (user.role === 'Admin') {
+        document.getElementById('adminControls').style.display = 'block';
+    }
+}
+
+function addProduct() {
+    const formData = new FormData();
+    formData.append('action', 'addProduct');
+    formData.append('name', document.getElementById('productName').value);
+    formData.append('price', document.getElementById('productPrice').value);
+    formData.append('category', document.getElementById('productCategory').value);
+    formData.append('image', document.getElementById('productImage').value);
+    formData.append('sale', document.getElementById('productSale').value || null);
+
+    fetch('/WebProject/backend/dao/test.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Product added successfully!');
+            $('#addProductModal').modal('hide');
+            document.getElementById('addProductForm').reset();
+        } else {
+            alert('Failed to add product');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to add product');
+    });
+}
+
+function loadDashboardProducts() {
+    console.log('Loading dashboard products...');
+    const dashboardItems = document.getElementById('dashboard-items');
+    if (!dashboardItems) {
+        console.error("Dashboard items container not found.");
+        return;
+    }
+
+    fetch('/WebProject/backend/dao/test.php?action=dashboard')
+        .then(response => response.json())
+        .then(products => {
+            console.log('Fetched dashboard products:', products); // Debugging log
+            dashboardItems.innerHTML = ''; // Clear existing products
+            if (products.length === 0) {
+                dashboardItems.innerHTML = '<p class="text-center">No products available.</p>';
+                return;
+            }
+            products.forEach(product => {
+                const productCard = `
+                    <div class="col mb-5">
+                        <div class="card h-100">
+                            ${product.SalePrice ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
+                            <a href="#product" class="product-link" data-id="${product.ProductID}">
+                                <img class="card-img-top" src="${product.Images}" alt="${product.Name}">
+                            </a>
+                            <div class="card-body p-4">
+                                <div class="text-center">
+                                    <h5 class="fw-bolder">${product.Name}</h5>
+                                    <div class="price">
+                                        ${product.SalePrice ? 
+                                            `<span class="text-muted text-decoration-line-through">${product.Price}KM</span> ${product.SalePrice}KM` : 
+                                            `${product.Price}KM`}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                                <div class="text-center">
+                                    <button class="btn btn-outline-dark mt-auto add-to-cart" 
+                                        data-id="${product.ProductID}" 
+                                        data-name="${product.Name}" 
+                                        data-price="${product.SalePrice || product.Price}">
+                                        Add to cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                dashboardItems.insertAdjacentHTML('beforeend', productCard);
+            });
+
+            attachProductLinkListeners();
+            attachAddToCartListeners(); // Ensure "Add to cart" buttons have event listeners
+        })
+        .catch(error => console.error('Error loading dashboard products:', error));
+}
+
+function loadProductPage() {
+    const product = JSON.parse(localStorage.getItem('selectedProduct'));
+    if (!product) {
+        console.error('No product details found in localStorage. Ensure storeProductDetails is called before navigating to the product page.');
+        return; 
+    }
+
+    console.log('Loaded product details:', product); 
+
+    const productContainer = document.querySelector('.container.px-4.px-lg-5.my-5');
+    if (productContainer) {
+        productContainer.innerHTML = `
+            <div class="row gx-4 gx-lg-5 align-items-center">
+                <div class="col-md-6">
+                    <img class="card-img-top mb-5 mb-md-0" src="${product.image}" alt="${product.name}" onerror="this.src='/WebProject/frontend/assets/noImage.png';" />
+                </div>
+                <div class="col-md-6">
+                    <h1 class="display-5 fw-bolder">${product.name}</h1>
+                    <div class="fs-5 mb-5">
+                        ${product.salePrice 
+                            ? `<span class="text-muted text-decoration-line-through">${product.price}KM</span> ${product.salePrice}KM`
+                            : `${product.price}KM`}
+                    </div>
+                    <p class="lead">${product.description || 'No description available.'}</p>
+                    <div class="d-flex">
+                        <input class="form-control text-center me-3" id="inputQuantity" type="number" value="1" style="max-width: 3rem" />
+                        <button class="btn btn-outline-dark flex-shrink-0 add-to-cart" 
+                                data-id="${product.id}" 
+                                data-name="${product.name}" 
+                                data-price="${product.salePrice || product.price}">
+                            <i class="bi-cart-fill me-1"></i>
+                            Add to cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    attachAddToCartListeners();
+    fetchRelatedItems(product.id, product.category);
+}
+
+// Initialize components
+updateNavBar();
 attachAddToCartListeners();
 attachAddToWishlistListeners();
-attachProductLinkListeners(); 
+attachProductLinkListeners();
 updateCartCount();
+
+// Only call these functions if the relevant elements exist
+if (document.querySelector('#category-filters')) {
+    fetchCategories();
+}
+if (document.getElementById('product-container')) {
+    renderProducts(1);
+}

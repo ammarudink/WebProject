@@ -12,5 +12,16 @@
             $stmt->execute();
             return $stmt->fetch();
         }
+
+        public function getById($id) {
+            $stmt = $this->connection->prepare("SELECT UserID, Name, Email, Address, Role FROM users WHERE UserID = :id");
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            return $stmt->fetch();
+        }
+
+        public function getLastInsertId() {
+            return $this->connection->lastInsertId();
+        }
     }
 ?>
