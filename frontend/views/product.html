@@ -1,22 +1,20 @@
 <section class="py-5">
     <div class="container px-4 px-lg-5 my-5">
         <div class="row gx-4 gx-lg-5 align-items-center">
-            <div class="col-md-6"><img class="card-img-top mb-5 mb-md-0" src="frontend/assets/PredatorX34Monitor.jpg" alt="..." /></div>
             <div class="col-md-6">
-                <div class="small mb-1">SKU: BST-498</div>
-                <h1 class="display-5 fw-bolder">Predator X34 X5 OLED Gaming Monitor</h1>
+                <img class="card-img-top mb-5 mb-md-0" id="product-image" src="" alt="Product Image" onerror="this.src='/WebProject/frontend/assets/noImage.png';" />
+            </div>
+            <div class="col-md-6">
+                <h1 class="display-5 fw-bolder" id="product-name">Product Name</h1>
                 <div class="fs-5 mb-5">
-                    <span>349KM</span>
+                    <span id="product-price">0.00KM</span>
                 </div>
-                <p class="lead">The Predator X34 X5 OLED Gaming Monitor delivers stunning visuals with its ultra-wide 34-inch OLED display, providing deep blacks and vibrant colors for an immersive gaming experience. With a high refresh rate and low response time, it ensures smooth gameplay and minimal motion blur. Its sleek design and advanced features make it a top choice for gamers seeking premium performance.</p>
+                <p class="lead" id="product-description">Product description will go here.</p>
                 <div class="d-flex">
                     <input class="form-control text-center me-3" id="inputQuantity" type="num" value="1" style="max-width: 3rem" />
-                    <button class="btn btn-outline-dark flex-shrink-0 add-to-cart" data-id="1" data-name="Predator X34 X5 OLED Gaming Monitor" data-price="349">
+                    <button class="btn btn-outline-dark flex-shrink-0 add-to-cart" id="add-to-cart">
                         <i class="bi-cart-fill me-1"></i>
                         Add to cart
-                    </button>
-                    <button class="btn flex-shrink-0 wishlist-icon ms-2" data-id="1">
-                        <img src="frontend/assets/nfheart.png" alt="Add to wishlist" id="wishlist-icon-1" style="width: 20px; height: 20px;">
                     </button>
                 </div>
             </div>
@@ -32,15 +30,20 @@
     </div>
 </section>
 <script>
-    const currentProductId = 1; 
-    const currentProductCategory = "Monitors"; 
-    fetchRelatedItems(currentProductId, currentProductCategory);
-    attachAddToCartListeners();
-    attachAddToWishlistListeners();
-    updateWishlistPage();
-
-    const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-    if (wishlist.includes(currentProductId.toString())) {
-        document.getElementById('wishlist-icon-1').src = "frontend/assets/fheart.png";
-    }
+    var app = $.spapp({
+        defaultView: "#product",
+        templateDir: "frontend/views/"
+    });
+    app.route({
+        view: "product",
+        onReady: function() {
+            const productId = localStorage.getItem('selectedProductId');
+            if (productId) {
+                loadProductDetails(productId);
+            } else {
+                console.error('No product ID found in localStorage.');
+            }
+        }
+    });
 </script>
+<script src="frontend/js/scripts.js?v=1.0"></script>
