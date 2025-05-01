@@ -37,12 +37,7 @@
     app.route({
         view: "product",
         onReady: function() {
-            const productId = localStorage.getItem('selectedProductId');
-            if (productId) {
-                loadProductDetails(productId);
-            } else {
-                console.error('No product ID found in localStorage.');
-            }
+            loadProductDetails(productId); 
         }
     });
 </script>

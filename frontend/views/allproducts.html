@@ -33,7 +33,8 @@
     app.route({
         view: "allproducts",
         onReady: function() {
-            initializeAllProductsPage(); 
+            initializeAllProductsPage();
+            attachProductLinkListeners();
         }
     });
 </script>
