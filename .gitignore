@@ -1,2 +1,2 @@
-backend/dao/config.php
-vendor
+./backend/dao/config.php
+./backend/vendor

@@ -11,7 +11,7 @@
         public function getById($id) {
             return $this->dao->getById($id);
         }
-        public function create($data) {
+        public function insert($data) {
             return $this->dao->insert($data);
         }
         public function update($id, $data) {

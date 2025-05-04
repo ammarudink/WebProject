@@ -5,11 +5,12 @@
             parent::__construct("products");
         }
 
-        public function getByProductName($productName) {
-            $stmt = $this->connection->prepare("select * from products where ProductName = :ProductName");
-            $stmt->bindParam(':ProductName', $productName);
+        public function getByProductName($name) {
+            $stmt = $this->connection->prepare("SELECT * FROM products WHERE Name LIKE :name");
+            $searchName = "%".$name."%";
+            $stmt->bindParam(':name', $searchName);
             $stmt->execute();
-            return $stmt->fetch();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         public function getByOnSale($onSale) {

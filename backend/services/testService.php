@@ -162,16 +162,5 @@ class TestService extends BaseService {
             ];
         }
     }
-
-    private function createOrder($orderData) {
-        try {
-            // Add your database insertion logic here
-            // For now, we'll just return true to simulate success
-            return true;
-        } catch (Exception $e) {
-            error_log("Order creation error: " . $e->getMessage());
-            return false;
-        }
-    }
 }
 ?>
