@@ -1105,6 +1105,184 @@ function loadProductPage() {
     fetchRelatedItems(product.id, product.category);
 }
 
+function validateCreditCard(cardNumber, expiryDate, cvc) {
+    const errors = [];
+    
+    // Validate card number (exactly 16 digits)
+    if (!/^\d{16}$/.test(cardNumber.replace(/\s/g, ''))) {
+        errors.push('Card number must be exactly 16 digits');
+    }
+
+    // Validate expiry date (MM/YY format)
+    if (!/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(expiryDate)) {
+        errors.push('Expiry date must be in MM/YY format');
+    } else {
+        const [month, year] = expiryDate.split('/');
+        const expiry = new Date(2000 + parseInt(year), parseInt(month) - 1);
+        const today = new Date();
+        if (expiry < today) {
+            errors.push('Card has expired');
+        }
+    }
+
+    // Validate CVC (exactly 3 digits)
+    if (!/^\d{3}$/.test(cvc)) {
+        errors.push('CVC must be exactly 3 digits');
+    }
+
+    return {
+        isValid: errors.length === 0,
+        errors: errors
+    };
+}
+
+function initializeCreditCardValidation() {
+    const creditCardForm = document.getElementById('credit-card-form');
+    const cardNumberInput = document.getElementById('cardNumber');
+    const expiryDateInput = document.getElementById('expiryDate');
+    const cvcInput = document.getElementById('cvc');
+
+    // Format expiry date input as MM/YY
+    if (expiryDateInput) {
+        expiryDateInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            e.target.value = value;
+        });
+    }
+
+    // Better way to handle numeric input
+    [cardNumberInput, cvcInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', function(e) {
+                // Remove any non-digit characters
+                this.value = this.value.replace(/\D/g, '');
+            });
+            
+            // Prevent paste of non-numeric values
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                if (/^\d+$/.test(pastedText)) {
+                    this.value = pastedText.slice(0, this.maxLength);
+                }
+            });
+        }
+    });
+}
+
+function initializeCartPage() {
+    renderCart();
+    
+    // Event delegation for quantity buttons and remove buttons
+    document.getElementById('cart-items').addEventListener('click', function(e) {
+        if (e.target.classList.contains('quantity-increase')) {
+            updateQuantity(parseInt(e.target.dataset.index), 1);
+        } else if (e.target.classList.contains('quantity-decrease')) {
+            updateQuantity(parseInt(e.target.dataset.index), -1);
+        } else if (e.target.classList.contains('remove-from-cart')) {
+            removeFromCart(parseInt(e.target.dataset.index));
+        }
+    });
+
+    // Handle form submission for checkout
+    document.getElementById('checkout-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const user = JSON.parse(localStorage.getItem('loggedInUser'));
+        if (!user) {
+            alert('Please login to checkout');
+            window.location.hash = '#login';
+            return;
+        }
+
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        if (cart.length === 0) {
+            alert('Your cart is empty!');
+            return;
+        }
+
+        const totalAmount = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+        document.getElementById('total-amount').value = totalAmount;
+        document.getElementById('userData').value = JSON.stringify(user);
+
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+        const formData = new FormData(this);
+
+        if (paymentMethod === 'credit-card') {
+            $('#creditCardModal').modal('show');
+            return;
+        }
+
+        // Submit order
+        fetch('/WebProject/backend/dao/test.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                localStorage.removeItem('cart');
+                alert('Order placed successfully!');
+                window.location.hash = '#dashboard';
+            } else {
+                alert(data.message || 'Failed to place order');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to place order');
+        });
+    });
+
+    // Handle credit card form submission
+    document.getElementById('credit-card-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const cardNumber = document.getElementById('cardNumber').value;
+        const expiryDate = document.getElementById('expiryDate').value;
+        const cvc = document.getElementById('cvc').value;
+
+        const validation = validateCreditCard(cardNumber, expiryDate, cvc);
+        
+        if (!validation.isValid) {
+            alert(validation.errors.join('\n'));
+            return;
+        }
+
+        $('#creditCardModal').modal('hide');
+        const checkoutForm = document.getElementById('checkout-form');
+        const formData = new FormData(checkoutForm);
+        formData.append('cardNumber', cardNumber);
+        formData.append('expiryDate', expiryDate);
+        formData.append('cvc', cvc);
+        
+        fetch('/WebProject/backend/dao/test.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                localStorage.removeItem('cart');
+                alert('Order placed successfully!');
+                window.location.hash = '#dashboard';
+            } else {
+                alert(data.message || 'Failed to place order');
+                if (data.errors) {
+                    alert('Payment validation errors:\n' + data.errors.join('\n'));
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to place order');
+        });
+    });
+}
+
 // Initialize components
 updateNavBar();
 attachAddToCartListeners();

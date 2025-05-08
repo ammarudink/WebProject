@@ -24,6 +24,26 @@
             </form>
         </div>
     </div>
+    <div class="card mb-3 mt-3">
+        <div class="card-header">
+            <h2>Order History</h2>
+        </div>
+        <div class="card-body">
+            <table class="table " id="orderHistoryTable">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="orderHistoryBody">
+                    <!-- Order history will be displayed here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
     <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
         <button type="button" class="btn btn-danger" onclick="deleteUser()">Delete User</button>
         <div id="adminControls" style="display: none;">

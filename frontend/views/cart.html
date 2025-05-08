@@ -18,18 +18,23 @@
     </div>
     <div class="text-end">
         <h4>Total: <span id="cart-total">0.00</span></h4>
-        <div class="mb-3 text-end" style="width: 200px; margin-left: auto;">
-            <label class="form-label d-block">Payment Method:</label>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="payment-method" id="payment-cash" value="cash" checked>
-                <label class="form-check-label" for="payment-cash">Cash</label>
+        <form action="backend/dao/test.php" method="POST" id="checkout-form">
+            <input type="hidden" name="action" value="createOrder">
+            <input type="hidden" name="totalAmount" id="total-amount" value="0">
+            <input type="hidden" name="userData" id="userData" value="">
+            <div class="mb-3 text-end" style="width: 200px; margin-left: auto;">
+                <label class="form-label d-block">Payment Method:</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="paymentMethod" id="payment-cash" value="cash" checked>
+                    <label class="form-check-label" for="payment-cash">Cash</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="paymentMethod" id="payment-credit-card" value="credit-card">
+                    <label class="form-check-label" for="payment-credit-card">Credit Card</label>
+                </div>
             </div>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="payment-method" id="payment-credit-card" value="credit-card">
-                <label class="form-check-label" for="payment-credit-card">Credit Card</label>
-            </div>
-        </div>
-        <button class="btn btn-success mt-3" id="checkout-button">Checkout</button>
+            <button type="submit" class="btn btn-success mt-3" id="checkout-button">Checkout</button>
+        </form>
     </div>
 </div>
 
@@ -42,18 +47,36 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="credit-card-form">
+                <form id="credit-card-form" novalidate>
                     <div class="mb-3">
-                        <label for="card-number" class="form-label">Card Number</label>
-                        <input type="text" class="form-control" id="card-number" required>
+                        <label for="cardNumber" class="form-label">Card Number</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="cardNumber" 
+                               maxlength="16"
+                               placeholder="Enter 16 digits"
+                               required>
+                        <div class="invalid-feedback">Please enter a valid 16-digit card number</div>
                     </div>
                     <div class="mb-3">
-                        <label for="card-expiry" class="form-label">Expiry Date</label>
-                        <input type="text" class="form-control" id="card-expiry" placeholder="MM/YY" required>
+                        <label for="expiryDate" class="form-label">Expiry Date</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="expiryDate" 
+                               maxlength="5"
+                               placeholder="MM/YY"
+                               required>
+                        <div class="invalid-feedback">Please enter a valid expiry date (MM/YY)</div>
                     </div>
                     <div class="mb-3">
-                        <label for="card-cvc" class="form-label">CVC</label>
-                        <input type="text" class="form-control" id="card-cvc" required>
+                        <label for="cvc" class="form-label">CVC</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="cvc" 
+                               maxlength="3"
+                               placeholder="Enter 3 digits"
+                               required>
+                        <div class="invalid-feedback">Please enter a valid 3-digit CVC</div>
                     </div>
                     <button type="submit" class="btn btn-primary" style="background-color: #212529; border-color: #212529;">Submit</button>
                 </form>
@@ -69,45 +92,9 @@
     app.route({
         view: "cart",
         onReady: function() {
-            renderCart(); 
-            $(document).off("click", ".remove-from-cart").on("click", ".remove-from-cart", function() {
-                let index = $(this).data("index");
-                console.log("Removing product with index::", index);
-                removeFromCart(index);
-            });
-            $(document).off("click", ".quantity-decrease").on("click", ".quantity-decrease", function() {
-                let index = $(this).data("index");
-                updateQuantity(index, -1);
-            });
-            $(document).off("click", ".quantity-increase").on("click", ".quantity-increase", function() {
-                let index = $(this).data("index");
-                updateQuantity(index, 1);
-            });
-            $('#checkout-button').on('click', function() {
-                const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
-                if (!loggedInUser) {
-                    alert('You must be logged in to checkout.');
-                    return;
-                }
-                const paymentMethod = $('input[name="payment-method"]:checked').val();
-                if (paymentMethod === 'cash') {
-                    const orderId = generateOrderId();
-                    alert(`Order successfully placed! Your Order ID is ${orderId}`);
-                } else if (paymentMethod === 'credit-card') {
-                    $('#creditCardModal').modal('show');
-                }
-            });
-            $('#credit-card-form').on('submit', function(event) {
-                event.preventDefault();
-                const orderId = generateOrderId();
-                $('#creditCardModal').modal('hide');
-                alert(`Order successfully placed! Your Order ID is ${orderId}`);
-            });
+            initializeCartPage();
+            initializeCreditCardValidation();
         }
     });
     app.run();
-
-    function generateOrderId() {
-        return Math.floor(Math.random() * 1000000);
-    }
 </script>
