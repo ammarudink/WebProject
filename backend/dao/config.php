@@ -6,6 +6,11 @@
         private static $password = 'Ammarudin';
         private static $connection = null;
 
+        // JWT Secret Key Definition
+        public static function JWT_SECRET() {
+            return 'de1587caa8b9fff6ab7d3d264f96fdd8ecbfc12dbdb2a2368985974f5ad32c92';
+        }
+
         public static function connect() {
             if (self::$connection === null) {
                 try {

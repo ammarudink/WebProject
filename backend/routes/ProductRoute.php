@@ -11,6 +11,7 @@
     * )
     */
     Flight::route("GET /product", function(){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         $product = Flight::product_service()->getAll();
         Flight::json([
             "message" => "OK",
@@ -31,6 +32,7 @@
     * )
     */
     Flight::route("GET /product/total", function(){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         $total = Flight::product_service()->getTotalProducts();
         Flight::json([
             "message" => "OK",
@@ -51,6 +53,7 @@
      * )
      */
     Flight::route("GET /product/sale", function(){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         $product = Flight::product_service()->getOnSaleProducts();
         Flight::json([
             "message" => "OK",
@@ -71,6 +74,7 @@
      * )
      */
     Flight::route("GET /product/dashboard", function(){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         $product = Flight::product_service()->getDashboardProducts();
         Flight::json([
             "message" => "OK",
@@ -91,6 +95,7 @@
      * )
      */
     Flight::route("GET /product/categories", function(){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         $categories = Flight::product_service()->fetchCategories();
         Flight::json([
             "message" => "OK",
@@ -117,6 +122,7 @@
      * )
      */
     Flight::route("GET /product/name/@name", function($name){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         $product = Flight::product_service()->getByProductName($name);
         Flight::json([
             "message" => "OK",
@@ -143,6 +149,7 @@
      * )
      */
     Flight::route("GET /product/@id", function($id){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         Flight::json(Flight::product_service()->getProductById($id));
     });
 
@@ -168,6 +175,7 @@
      * )
      */
     Flight::route("PATCH /product/@id", function($id){
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
         $product = Flight::request()->data->getData();
         Flight::json([
             "message" => "Product updated successfully",

@@ -11,6 +11,7 @@
     * )
     */
     Flight::route("GET /user", function(){
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
         $user = Flight::user_service()->getAll();
         Flight::json([
             "message" => "OK",
@@ -39,6 +40,7 @@
     * )
     */
     Flight::route("POST /user", function(){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         $request = Flight::request()->data->getData();
         Flight::json([
             "message" => "User created successfully",
@@ -64,6 +66,7 @@
      * )
      */
     Flight::route("GET /user/@id", function($id){
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
         Flight::json(Flight::user_service()->getById($id));
     });
 
@@ -85,6 +88,7 @@
      * )
      */
     Flight::route("DELETE /user/@id", function($id){
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
         Flight::user_service()->delete($id);
         Flight::json(["message" => "User deleted successfully"]);
     });
@@ -111,6 +115,7 @@
      * )
      */
     Flight::route("GET /user/email/@email", function($email){
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
         $user = Flight::user_service()->getByEmail($email);
         if ($user) {
             Flight::json([
