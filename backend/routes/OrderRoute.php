@@ -11,6 +11,7 @@
      * )
      */
     Flight::route("GET /order", function(){
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
         $order = Flight::order_service()->getAll();
         Flight::json([
             "message" => "OK",
@@ -38,6 +39,7 @@
      * )
      */
     Flight::route("POST /order/create", function(){
+        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
         $request = Flight::request()->data->getData();
         $userId = $request['UserID'];
         $totalAmount = $request['TotalAmount'];
@@ -66,6 +68,7 @@
      * )
      */
     Flight::route("GET /order/status/@status", function($status){
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
         $order = Flight::order_service()->getByStatus($status);
         Flight::json([
             "message" => "OK",
@@ -92,6 +95,7 @@
      * )
      */
     Flight::route("GET /order/user/@id", function($id){
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
         $order = Flight::order_service()->getByUserId($id);
         Flight::json([
             "message" => "OK",
