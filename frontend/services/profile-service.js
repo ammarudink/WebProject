@@ -7,57 +7,79 @@ var ProfileService = {
         this.loadProfile();
         this.loadOrderHistory();
         this.checkAdminStatus();
-
-        $(document).on('click', '#updateProductBtn', this.updateProduct);
-        $(document).on('click', '#deleteUserBtn', this.deleteUser);
-        $(document).on('click', '.view-order-details', function(e) {
-            const orderId = $(this).data('order-id');
-            ProfileService.viewOrderDetails(orderId);
-        });
     },
 
     loadProfile: function() {
-        $.ajax({
-            url: Constants.PROJECT_BASE_URL + "users/profile",
-            type: "GET",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("user_token")
-            },
-            success: function(result) {
-                $("#name").val(result.data.name);
-                $("#email").val(result.data.email);
-                $("#address").val(result.data.address);
-                $("#role").val(result.data.role);
-            },
-            error: function(XMLHttpRequest) {
-                toastr.error(XMLHttpRequest?.responseText || 'Error loading profile');
+    const token = localStorage.getItem('user_token');
+    if (!token) {
+        toastr.error('Authentication token not found');
+        return;
+    }
+
+    // First try to get user data from JWT token
+    try {
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        const userData = tokenPayload.user;
+        
+        if (userData) {
+            $("#name").val(userData.Name);
+            $("#email").val(userData.Email);
+            $("#address").val(userData.Address);
+            $("#role").val(userData.Role);
+        }
+    } catch (e) {
+        console.error('Error parsing JWT token:', e);
+    }
+
+    // Then make API call to get latest data
+    $.ajax({
+        url: Constants.project_base_url() + "user/" + JSON.parse(atob(token.split('.')[1])).user.UserID,
+        type: "GET",
+        headers: {
+            "Authentication": "Bearer " + token
+        },
+        success: function(result) {
+            const userData = result.data || result;
+            
+            if (userData && userData.Name) {
+                $("#name").val(userData.Name);
+                $("#email").val(userData.Email);
+                $("#address").val(userData.Address);
+                $("#role").val(userData.Role);
+            } else {
+                console.warn('Server returned invalid profile data:', result);
+                toastr.error('Could not load profile data');
             }
-        });
-    },
+        },
+        error: function(XMLHttpRequest) {
+            console.error('Profile load error:', XMLHttpRequest);
+            toastr.error(XMLHttpRequest?.responseText || 'Error loading profile from server');
+        }
+    });
+},
 
     loadOrderHistory: function() {
         $.ajax({
-            url: Constants.PROJECT_BASE_URL + "orders/history",
+            url: Constants.project_base_url() + "order/history",
             type: "GET",
             headers: {
-                "Authorization": "Bearer " + localStorage.getItem("user_token")
+                "Authentication": "Bearer " + localStorage.getItem("user_token")
             },
             success: function(result) {
                 $("#orderHistoryBody").empty();
-                result.data.forEach(order => {
-                    $("#orderHistoryBody").append(`
-                        <tr>
-                            <td>${order.id}</td>
-                            <td>$${order.total_amount.toFixed(2)}</td>
-                            <td><span class="badge bg-${order.status === 'completed' ? 'success' : 'warning'}">${order.status}</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-info view-order-details" data-order-id="${order.id}">
-                                    View Details
-                                </button>
-                            </td>
-                        </tr>
-                    `);
-                });
+                if (result && result.data) {
+                    result.data.forEach(order => {
+                        // Make sure order properties exist before using toFixed()
+                        const totalAmount = order.TotalAmount ? parseFloat(order.TotalAmount).toFixed(2) : '0.00';
+                        const row = `
+                            <tr>
+                                <td>${order.OrderID}</td>
+                                <td>$${totalAmount}</td>
+                                <td>${order.Status}</td>
+                            </tr>`;
+                        $("#orderHistoryBody").append(row);
+                    });
+                }
             },
             error: function(XMLHttpRequest) {
                 toastr.error(XMLHttpRequest?.responseText || 'Error loading orders');
@@ -67,10 +89,10 @@ var ProfileService = {
 
     viewOrderDetails: function(orderId) {
         $.ajax({
-            url: Constants.PROJECT_BASE_URL + "orders/" + orderId,
+            url: Constants.project_base_url() + "order/" + orderId,
             type: "GET",
             headers: {
-                "Authorization": "Bearer " + localStorage.getItem("user_token")
+                "Authentication": "Bearer " + localStorage.getItem("user_token")
             },
             success: function(result) {
                 console.log("Order details:", result);
@@ -83,32 +105,36 @@ var ProfileService = {
     },
 
     checkAdminStatus: function() {
-        $.ajax({
-            url: Constants.PROJECT_BASE_URL + "users/role",
-            type: "GET",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("user_token")
-            },
-            success: function(result) {
-                if (result.data && result.data.role === Constants.ADMIN_ROLE) {
-                    $("#adminControls").show();
-                }
-            },
-            error: function(XMLHttpRequest) {
-                if (XMLHttpRequest.status === 401) {
-                    window.location.replace('#login');
-                }
-                console.error("Error checking admin status:", XMLHttpRequest);
+    const token = localStorage.getItem('user_token');
+    if (!token) return;
+
+    $.ajax({
+        url: Constants.project_base_url() + "user/" + JSON.parse(atob(token.split('.')[1])).user.UserID,
+        type: "GET",
+        headers: {
+            "Authentication": "Bearer " + token
+        },
+        success: function(result) {
+            const userData = result.data || result;
+            if (userData && userData.Role === 'Admin') {
+                $("#adminControls").show();
+            } else {
+                $("#adminControls").hide();
             }
-        });
-    },
+        },
+        error: function(XMLHttpRequest) {
+            console.error('Admin status check error:', XMLHttpRequest);
+            $("#adminControls").hide();
+        }
+    });
+},
 
     loadProductsIntoSelect: function() {
         $.ajax({
-            url: Constants.PROJECT_BASE_URL + "products",
+            url: Constants.project_base_url() + "products",
             type: "GET",
             headers: {
-                "Authorization": "Bearer " + localStorage.getItem("user_token")
+                "Authentication": "Bearer " + localStorage.getItem("user_token")
             },
             success: function(result) {
                 $("#productSelect").empty();
@@ -130,10 +156,10 @@ var ProfileService = {
         const salePrice = $("#updateSalePrice").val() || null;
 
         $.ajax({
-            url: Constants.PROJECT_BASE_URL + "products/" + productId,
+            url: Constants.project_base_url() + "products/" + productId,
             type: "PUT",
             headers: {
-                "Authorization": "Bearer " + localStorage.getItem("user_token")
+                "Authentication": "Bearer " + localStorage.getItem("user_token")
             },
             data: JSON.stringify({
                 price: newPrice,
@@ -154,10 +180,10 @@ var ProfileService = {
     deleteUser: function() {
         if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
             $.ajax({
-                url: Constants.PROJECT_BASE_URL + "users/profile",
+                url: Constants.project_base_url() + "user/" + JSON.parse(atob(localStorage.getItem("user_token").split('.')[1])).user.UserID,
                 type: "DELETE",
                 headers: {
-                    "Authorization": "Bearer " + localStorage.getItem("user_token")
+                    "Authentication": "Bearer " + localStorage.getItem("user_token")
                 },
                 success: function() {
                     localStorage.clear();

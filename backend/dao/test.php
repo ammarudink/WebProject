@@ -9,35 +9,46 @@ $productsDao = new ProductsDao();
 $ordersDao = new OrdersDao();
 
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
+header('Content-Type: application/json');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    // Add this in the POST section
+    
     if (isset($_POST['action']) && $_POST['action'] === 'updateProduct') {
-        header('Content-Type: application/json');
-        
+    header('Content-Type: application/json');
+    
+    try {
+        // Validate inputs
+        if (!isset($_POST['productId']) || !isset($_POST['price'])) {
+            throw new Exception('Missing required fields');
+        }
+
+        $productId = intval($_POST['productId']);
         $productData = [
-            'Price' => floatval($_POST['price']),
-            'SalePrice' => !empty($_POST['salePrice']) ? floatval($_POST['salePrice']) : null
+            'Price' => floatval($_POST['price'])
         ];
 
-        error_log("Updating product with ID: " . $_POST['productId'] . " and data: " . json_encode($productData));
-        
-        try {
-            if ($productsDao->update($_POST['productId'], $productData)) {
-                echo json_encode(['success' => true]);
-            } else {
-                error_log("Failed to update product in database.");
-                echo json_encode(['success' => false, 'message' => 'Failed to update product']);
-            }
-        } catch (Exception $e) {
-            error_log("Error updating product: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        // Only add SalePrice if it's provided and not empty
+        if (isset($_POST['salePrice']) && $_POST['salePrice'] !== '') {
+            $productData['SalePrice'] = floatval($_POST['salePrice']);
         }
-        exit();
+
+        error_log("Updating product ID: $productId with data: " . json_encode($productData));
+
+        if ($productsDao->update($productId, $productData)) {
+            echo json_encode(['success' => true]);
+        } else {
+            error_log("Failed to update product in database.");
+            echo json_encode(['success' => false, 'message' => 'Failed to update product']);
+        }
+    } catch (Exception $e) {
+        error_log("Error updating product: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
+    exit();
+}
 
     // Modify the createOrder handler in the POST section
     if (isset($_POST['action']) && $_POST['action'] === 'createOrder') {
@@ -80,30 +91,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Check if this is a login request
     if (isset($_POST['email']) && isset($_POST['password'])) {
-        header('Content-Type: application/json');
-        try {
-            $user = $userDao->getByEmail($_POST['email']);
-            
-            if ($user && password_verify($_POST['password'], $user['Password'])) {
-                $userData = [
-                    'UserID' => $user['UserID'],
-                    'name' => $user['Name'],
-                    'email' => $user['Email'],
-                    'address' => $user['Address'],
-                    'role' => $user['Role']
-                ];
-                echo json_encode(['success' => true, 'user' => $userData]);
-            } else {
-                http_response_code(401);
-                echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
-            }
-            exit();
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Login failed: ' . $e->getMessage()]);
-            exit();
+    header('Content-Type: application/json');
+    try {
+        $user = $userDao->getByEmail($_POST['email']);
+        
+        if ($user && password_verify($_POST['password'], $user['Password'])) {
+            $userData = [
+                'UserID' => $user['UserID'],
+                'name' => $user['Name'],
+                'email' => $user['Email'],
+                'address' => $user['Address'],
+                'role' => $user['Role']
+            ];
+
+            echo json_encode([
+                'success' => true, 
+                'user' => $userData,
+                'token' => 'dummy_token' 
+            ]);
+        } else {
+            http_response_code(401);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Invalid email or password'
+            ]);
         }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Login failed: ' . $e->getMessage()
+        ]);
     }
+    exit();
+}
     // Existing registration code
     $userData = [
         'Name' => $_POST['Name'],
@@ -204,28 +225,41 @@ if (isset($_GET['action'])) {
             break;
             
         case 'onsale':
-            echo json_encode($productsDao->getOnSaleProducts());
-            break;
-
-        // Add this in the GET section where other product actions are
+            header('Content-Type: application/json');
+    try {
+        $products = $productsDao->getOnSaleProducts();
+        error_log("On sale products: " . json_encode($products));
+        echo json_encode($products);
+    } catch (Exception $e) {
+        error_log("Error fetching on-sale products: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to fetch on-sale products']);
+    }
+    break;
         case 'getAllProducts':
             try {
-                error_log("getAllProducts action triggered"); // Log action trigger
-                $products = $productsDao->getAll(); // Use BaseDao's getAll method
-                if ($products) {
-                    error_log("Products fetched successfully: " . json_encode($products)); // Log fetched products
-                    echo json_encode(['success' => true, 'products' => $products]);
+                $products = $productsDao->getAll(); // Use the inherited getAll method
+                if ($products !== false) {
+                    echo json_encode([
+                        'success' => true,
+                        'products' => $products
+                    ]);
                 } else {
-                    error_log("No products found");
-                    echo json_encode(['success' => false, 'message' => 'No products found']);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'No products found'
+                    ]);
                 }
             } catch (Exception $e) {
-                error_log("Error fetching products: " . $e->getMessage());
+                error_log("Error in getAllProducts: " . $e->getMessage());
                 http_response_code(500);
-                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Database error: ' . $e->getMessage()
+                ]);
             }
+            exit();
             break;
-
         case 'getCategories':
             try {
                 $categories = $productsDao->fetchCategories(); // Use the new method

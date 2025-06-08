@@ -74,7 +74,7 @@ class AuthService extends BaseService {
 
        $token = JWT::encode(
            $jwt_payload,
-           Database::JWT_SECRET(),
+           Config::JWT_SECRET(),
            'HS256'
        );
 

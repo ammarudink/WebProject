@@ -10,12 +10,8 @@
                     <span id="product-price">0.00KM</span>
                 </div>
                 <p class="lead" id="product-description">Product description will go here.</p>
-                <div class="d-flex">
-                    <input class="form-control text-center me-3" id="inputQuantity" type="num" value="1" style="max-width: 3rem" />
-                    <button class="btn btn-outline-dark flex-shrink-0 add-to-cart" id="add-to-cart">
-                        <i class="bi-cart-fill me-1"></i>
-                        Add to cart
-                    </button>
+                <div class="d-flex product-actions">
+                    <!-- Product actions (cart button and wishlist) will be inserted here -->
                 </div>
             </div>
         </div>
@@ -37,8 +33,11 @@
     app.route({
         view: "product",
         onReady: function() {
-            loadProductDetails(productId); 
+            const params = new URLSearchParams(window.location.hash.split('?')[1]);
+            const productId = params.get('id');
+            if (productId) {
+                ProductService.loadProductDetails(productId);
+            }
         }
     });
 </script>
-<script src="frontend/js/scripts.js?v=1.0"></script>

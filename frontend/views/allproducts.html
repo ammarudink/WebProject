@@ -33,9 +33,11 @@
     app.route({
         view: "allproducts",
         onReady: function() {
-            initializeAllProductsPage();
-            attachProductLinkListeners();
+            ProductService.getCategories().then(() => {
+                ProductService.getAllProducts(1);
+            });
         }
     });
+    app.run();
 </script>
 <script src="frontend/js/scripts.js?v=<?= time() ?>"></script> <!-- Cache-busting query parameter -->

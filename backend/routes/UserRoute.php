@@ -40,7 +40,7 @@
     * )
     */
     Flight::route("POST /user", function(){
-        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
+        Flight::auth_middleware()->authorizeRoles([Roles::ADMIN, Roles::CUSTOMER]);
         $request = Flight::request()->data->getData();
         Flight::json([
             "message" => "User created successfully",
@@ -88,7 +88,7 @@
      * )
      */
     Flight::route("DELETE /user/@id", function($id){
-        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
+        Flight::auth_middleware()->authorizeRoles([Roles::ADMIN, Roles::CUSTOMER]);
         Flight::user_service()->delete($id);
         Flight::json(["message" => "User deleted successfully"]);
     });
@@ -130,5 +130,25 @@
                 "data" => null
             ]);
         }
+    });
+    /**
+     * @OA\Get(
+     *     path="/user/role",
+     *     tags={"users"},
+     *     summary="Get current user role",
+     *     @OA\Response(
+     *         response=200,
+     *         description="User role"
+     *     )
+     * )
+     */
+    Flight::route("GET /user/role", function(){
+        Flight::auth_middleware()->authorizeRoles([Roles::ADMIN, Roles::CUSTOMER]);
+        $user = Flight::get('user');
+        Flight::json([
+            "message" => "OK",
+            "code" => 200,
+            "data" => ["role" => $user->Role]
+        ]);
     });
 ?>
