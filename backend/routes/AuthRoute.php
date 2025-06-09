@@ -91,19 +91,32 @@ Flight::group('/auth', function() {
     * )
     */
    Flight::route('POST /login', function() {
-       $data = Flight::request()->data->getData();
+    $login_data = Flight::request()->data->getData();
+    
+    try {
+        if (!isset($login_data['Email']) || !isset($login_data['Password'])) {
+            throw new Exception('Email and password are required.');
+        }
 
-
-       $response = Flight::auth_service()->login($data);
-  
-       if ($response['success']) {
-           Flight::json([
-               'message' => 'User logged in successfully',
-               'data' => $response['data']
-           ]);
-       } else {
-           Flight::halt(500, $response['error']);
-       }
-   });
+        $response = Flight::auth_service()->login($login_data);
+        if($response['success']){
+            Flight::json([
+                'success' => true,
+                'user' => $response['data'],
+                'token' => $response['data']['token']
+            ]);
+        } else {
+            Flight::json([
+                'success' => false,
+                'message' => $response['error']
+            ], 401);
+        }
+    } catch (\Exception $e) {
+        Flight::json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 401);
+    }
+    });
 });
 ?>

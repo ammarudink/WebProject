@@ -10889,8 +10889,8 @@ textarea.form-control-lg {
 }
 
 #credit-card-form .form-control:focus {
-  box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25);
-  border-color: #212529;
+  box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25) !important;
+  border-color: #212529 !important;
 }
 .product-link {
   text-decoration: none;
@@ -10898,4 +10898,48 @@ textarea.form-control-lg {
 }
 .product-link:hover {
   color: black;
+}
+.btn-custom{
+  background-color: #212529 !important;
+  color: white !important;
+  border-radius: 10px !important;
+  padding: 5px 10px !important;
+  transition: all 0.3s ease-in-out !important;
+}
+.btn-custom:hover {
+  background-color: #343a40 !important;
+  color: white !important;
+}
+.text-custom{
+  color: #212529 !important;
+  font-weight: bold;
+}
+.form-control:focus {
+    border-color: #212529 !important;
+    box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25) !important;
+}
+
+.form-select:focus {
+    border-color: #212529 !important;
+    box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25) !important;
+}
+
+
+.form-select option:hover {
+    background-color: #212529 !important;
+    color: white !important;
+}
+
+.form-select:focus option:hover {
+    background-color: #212529 !important;
+    color: white !important;
+}
+.form-select:focus {
+    border-color: #212529 !important;
+    box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25) !important;
+}
+
+select option:hover {
+    background: #212529 linear-gradient(0deg, #212529 0%, #212529 100%) !important;
+    color: white !important;
 }

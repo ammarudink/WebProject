@@ -21,10 +21,13 @@
     app.route({
         view: "dashboard",
         onReady: function() {
+            if (!Utils.isLoggedIn()) {
+                window.location.hash = '#login';
+                return;
+            }
+            ProductService.getDashboardProducts();
             updateCartCount();
-            attachAddToCartListeners();
-            attachProductLinkListeners();
         }
     });
-    loadDashboardProducts();
+    app.run();
 </script>

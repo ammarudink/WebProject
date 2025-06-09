@@ -35,7 +35,6 @@
                         <th>Order ID</th>
                         <th>Total Amount</th>
                         <th>Status</th>
-                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="orderHistoryBody">
@@ -95,7 +94,7 @@
     app.route({
         view: "profile",
         onReady: function() {
-            displayUserProfile();
+            ProfileService.init();
         }
     });
     app.run();

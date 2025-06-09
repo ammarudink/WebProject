@@ -5,6 +5,7 @@ require 'services/OrderService.php';
 require 'services/ProductService.php';
 require 'services/AuthService.php';
 require "middleware/AuthMiddleware.php";
+require 'data/roles.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -30,10 +31,12 @@ Flight::route('/*', function() {
        try {
            $token = Flight::request()->getHeader("Authentication");
            if(!$token)
-               Flight::halt(401, "Missing authentication header");
+               Flight::halt(401, "Missing authorization header");
 
 
-           $decoded_token = JWT::decode($token, new Key(Database::JWT_SECRET(), 'HS256'));
+           $token = str_replace('Bearer ', '', $token);
+           
+           $decoded_token = JWT::decode($token, new Key(Config::JWT_SECRET(), 'HS256'));
 
 
            Flight::set('user', $decoded_token->user);

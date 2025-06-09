@@ -39,7 +39,7 @@
      * )
      */
     Flight::route("POST /order/create", function(){
-        Flight::auth_middleware()->authorizeRole([Roles::ADMIN, Roles::CUSTOMER]);
+        Flight::auth_middleware()->authorizeRoles([Roles::ADMIN, Roles::CUSTOMER]);
         $request = Flight::request()->data->getData();
         $userId = $request['UserID'];
         $totalAmount = $request['TotalAmount'];
@@ -101,6 +101,27 @@
             "message" => "OK",
             "code" => 200,
             "data" => $order
+        ]);
+    });
+    /**
+     * @OA\Get(
+     *     path="/order/history",
+     *     tags={"orders"},
+     *     summary="Get order history for current user",
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of orders"
+     *     )
+     * )
+     */
+    Flight::route("GET /order/history", function(){
+        Flight::auth_middleware()->authorizeRoles([Roles::ADMIN, Roles::CUSTOMER]);
+        $user = Flight::get('user');
+        $orders = Flight::order_service()->getByUserId($user->UserID);
+        Flight::json([
+            "message" => "OK",
+            "code" => 200,
+            "data" => $orders
         ]);
     });    
 ?>

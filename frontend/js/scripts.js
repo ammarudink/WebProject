@@ -270,11 +270,15 @@ function renderProductsWithData(data) {
 }
 
 function attachProductLinkListeners() {
-    document.querySelectorAll('.product-link').forEach(link => {
-        link.addEventListener('click', function(event) {
-            const productId = event.currentTarget.getAttribute('data-id');
-            localStorage.setItem('selectedProductId', productId);
-        });
+    $(document).off('click', '.product-link').on('click', '.product-link', function(e) {
+        e.preventDefault();
+        const productId = $(this).data('id');
+        if (productId) {
+            // Store the product ID in localStorage
+            localStorage.setItem('currentProductId', productId);
+            // Navigate to product page without query parameter
+            window.location.hash = 'product';
+        }
     });
 }
 // Removed invalid line
@@ -495,7 +499,7 @@ function renderCart() {
             <td>
                 <div class="input-group input-group-sm" style="width: 120px;">
                     <button class="btn btn-outline-secondary btn-sm-width quantity-decrease" type="button" data-index="${index}">-</button>
-                    <input type="number" class="form-control cart-quantity text-center" data-index="${index}" value="${item.quantity}" min="1" readonly>
+                    <input class="form-control cart-quantity text-center" data-index="${index}" value="${item.quantity}" min="1" readonly>
                     <button class="btn btn-outline-secondary btn-sm-width quantity-increase" type="button" data-index="${index}">+</button>
                 </div>
             </td>
@@ -542,83 +546,67 @@ function removeFromCart(index) {
 
 function fetchOnSaleItems() {
     const itemsContainer = document.getElementById('onsale-items');
-    if (!itemsContainer) return;
+    if (!itemsContainer) {
+        console.error("On-sale items container not found");
+        return;
+    }
 
     fetch('/WebProject/backend/dao/test.php?action=onsale')
-    .then(response => response.json())
-    .then(products => {
-        itemsContainer.innerHTML = '';
-        products.forEach(product => {
-            const itemElement = `
-                <div class="col mb-5">
-                    <div class="card h-100">
-                        <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
-                        <img src="${product.Images}" class="card-img-top" alt="${product.Name}">
-                        <div class="card-body p-4">
-                            <div class="text-center">
-                                <h5 class="fw-bolder">${product.Name}</h5>
-                                <div class="price" style="min-height: 30px;">
-                                    <span class="text-muted text-decoration-line-through">${product.Price}KM</span> 
-                                    ${product.SalePrice}KM
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(products => {
+            console.log('Fetched on-sale products:', products);
+            itemsContainer.innerHTML = '';
+            
+            if (!products || products.length === 0) {
+                itemsContainer.innerHTML = '<div class="col-12 text-center"><p>No items currently on sale.</p></div>';
+                return;
+            }
+
+            products.forEach(product => {
+                itemsContainer.innerHTML += `
+                    <div class="col mb-5">
+                        <div class="card h-100">
+                            <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
+                            <a href="#product" class="product-link" data-id="${product.ProductID}">
+                                <img class="card-img-top" src="${product.Images}" alt="${product.Name}">
+                            </a>
+                            <div class="card-body p-4">
+                                <div class="text-center">
+                                    <h5 class="fw-bolder">${product.Name}</h5>
+                                    <div class="price mb-3">
+                                        <span class="text-muted text-decoration-line-through">${product.Price}KM</span>
+                                        <span class="text-danger">${product.SalePrice}KM</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                                <div class="text-center">
+                                    <button class="btn btn-outline-dark mt-auto add-to-cart" 
+                                        data-id="${product.ProductID}" 
+                                        data-name="${product.Name}" 
+                                        data-price="${product.SalePrice}">
+                                        Add to cart
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                            <div class="text-center">
-                                <button class="btn btn-outline-dark mt-auto add-to-cart" 
-                                    data-id="${product.ProductID}" 
-                                    data-name="${product.Name}" 
-                                    data-price="${product.SalePrice}">
-                                    Add to cart
-                                </button>
-                            </div>
-                        </div>
                     </div>
-                </div>
-            `;
-            itemsContainer.insertAdjacentHTML('beforeend', itemElement);
+                `;
+            });
+            attachAddToCartListeners();
+            attachProductLinkListeners();
+        })
+        .catch(error => {
+            console.error('Error fetching on-sale items:', error);
+            itemsContainer.innerHTML = '<div class="col-12 text-center"><p>Error loading sale items. Please try again later.</p></div>';
         });
-        attachAddToCartListeners();
-    });
 }
 
-function fetchRelatedItems(currentProductId, currentProductCategory) {
-    const relatedItems = products.filter(product => product.category === currentProductCategory && product.id !== currentProductId).slice(0, 4);
-
-    const itemsContainer = document.getElementById('related-items');
-    itemsContainer.innerHTML = ''; 
-    relatedItems.forEach(item => {
-        const itemElement = document.createElement('div');
-        itemElement.className = 'col mb-5';
-        itemElement.innerHTML = `
-            <div class="card h-100">
-                ${item.sale ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
-                <img src="${item.image}" class="card-img-top" alt="${item.name}">
-                <div class="card-body p-4">
-                    <div class="text-center">
-                        <h5 class="fw-bolder">${item.name}</h5>
-                        <div class="price" style="min-height: 30px;">
-                            ${item.sale ? `<span class="text-muted text-decoration-line-through">${item.sale}</span> ` : ''}${item.price}KM
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                    <div class="text-center">
-                        <button class="btn btn-outline-dark mt-auto add-to-cart" 
-                            data-id="${item.id}" 
-                            data-name="${item.name}" 
-                            data-price="${item.price}">
-                            Add to cart
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        itemsContainer.appendChild(itemElement);
-    });
-
-    attachAddToCartListeners();
-}
 
 function addToWishlist(event) {
     event.preventDefault();
@@ -631,9 +619,11 @@ function addToWishlist(event) {
         const index = wishlist.indexOf(itemId);
         wishlist.splice(index, 1);
         icon.src = "frontend/assets/nfheart.png";
+        toastr.success('Removed from wishlist');
     } else {
         wishlist.push(itemId);
         icon.src = "frontend/assets/fheart.png";
+        toastr.success('Added to wishlist');
     }
     
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
@@ -708,65 +698,135 @@ function attachAddToWishlistListeners() {
 }
 
 function loadProductDetails(productId) {
-    console.log(`Fetching product details for productId: ${productId}`);
-    fetch(`/WebProject/backend/dao/test.php?view=product&productId=${productId}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log('Product details fetched:', data);
-            if (data.product) {
-                // Populate product details
-                document.getElementById('product-image').src = data.product.Images || '/WebProject/frontend/assets/noImage.png';
-                document.getElementById('product-name').textContent = data.product.Name || 'Product Name';
-                document.getElementById('product-price').textContent = data.product.SalePrice
-                    ? `${data.product.SalePrice}KM (Sale)`
-                    : `${data.product.Price}KM`;
-                document.getElementById('product-description').textContent = data.product.Description || 'No description available.';
-                document.getElementById('add-to-cart').setAttribute('data-id', data.product.ProductID);
-                document.getElementById('add-to-cart').setAttribute('data-name', data.product.Name);
-                document.getElementById('add-to-cart').setAttribute('data-price', data.product.SalePrice || data.product.Price);
+    if (!productId) {
+        console.error('No product ID provided');
+        return;
+    }
 
-                // Load related products
-                loadRelatedProducts(data.relatedProducts);
-            } else {
-                console.error('Product not found:', data.error || 'Unknown error');
+    fetch(`/WebProject/backend/routes/ProductRoute.php?id=${productId}`, {
+        headers: {
+            "Authentication": "Bearer " + localStorage.getItem("user_token")
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data && data.data) {
+            const product = data.data;
+            
+            // Update product image
+            const productImage = document.getElementById('product-image');
+            if (productImage) {
+                productImage.src = product.Images || '/WebProject/frontend/assets/noImage.png';
+                productImage.alt = product.Name;
             }
-        })
-        .catch(error => console.error('Error fetching product details:', error));
+
+            // Update product name
+            const productName = document.getElementById('product-name');
+            if (productName) {
+                productName.textContent = product.Name;
+            }
+
+            // Update price display
+            const priceElement = document.getElementById('product-price');
+            if (priceElement) {
+                if (product.SalePrice) {
+                    priceElement.innerHTML = `
+                        <span class="text-muted text-decoration-line-through">${product.Price}KM</span> 
+                        <span class="text-danger">${product.SalePrice}KM</span>
+                    `;
+                } else {
+                    priceElement.textContent = `${product.Price}KM`;
+                }
+            }
+
+            // Update description
+            const descriptionElement = document.getElementById('product-description');
+            if (descriptionElement) {
+                descriptionElement.textContent = product.Description || 'No description available.';
+            }
+
+            // Setup add to cart button
+            const addToCartBtn = document.getElementById('add-to-cart');
+            if (addToCartBtn) {
+                addToCartBtn.setAttribute('data-id', product.ProductID);
+                addToCartBtn.setAttribute('data-name', product.Name);
+                addToCartBtn.setAttribute('data-price', product.SalePrice || product.Price);
+            }
+
+            // Load related products
+            if (product.ProductID && product.Category) {
+                fetchRelatedProducts(product.ProductID, product.Category);
+            }
+        }
+    })
+    .catch(error => console.error('Error loading product details:', error));
 }
 
-function loadRelatedProducts(relatedProducts) {
+function fetchRelatedProducts(productId, category) {
+    if (!productId || !category) {
+        console.error('ProductID and Category are required for fetching related products');
+        return;
+    }
+
     const relatedItemsContainer = document.getElementById('related-items');
-    relatedItemsContainer.innerHTML = ''; // Clear existing items
-    if (relatedProducts && relatedProducts.length > 0) {
-        relatedProducts.forEach(product => {
-            const productCard = `
-                <div class="col mb-5">
-                    <div class="card h-100">
-                        ${product.SalePrice ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
-                        <img class="card-img-top" src="${product.Images || '/WebProject/frontend/assets/noImage.png'}" alt="${product.Name}" />
-                        <div class="card-body p-4">
-                            <div class="text-center">
-                                <h5 class="fw-bolder">${product.Name}</h5>
-                                <div class="price">
-                                    ${product.SalePrice
-                                        ? `<span class="text-muted text-decoration-line-through">${product.Price}KM</span> ${product.SalePrice}KM`
-                                        : `${product.Price}KM`}
+    if (!relatedItemsContainer) {
+        console.error('Related items container not found');
+        return;
+    }
+
+    fetch(`/WebProject/backend/routes/ProductRoute.php?related=true&category=${category}&exclude=${productId}`, {
+        headers: {
+            "Authentication": "Bearer " + localStorage.getItem("user_token")
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        relatedItemsContainer.innerHTML = ''; // Clear existing items
+        
+        if (data && data.data && data.data.length > 0) {
+            data.data.forEach(product => {
+                const productCard = `
+                    <div class="col mb-5">
+                        <div class="card h-100">
+                            ${product.SalePrice ? '<div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>' : ''}
+                            <a href="#product" class="product-link" data-id="${product.ProductID}">
+                                <img class="card-img-top" src="${product.Images || '/WebProject/frontend/assets/noImage.png'}" alt="${product.Name}" />
+                            </a>
+                            <div class="card-body p-4">
+                                <div class="text-center">
+                                    <h5 class="fw-bolder">${product.Name}</h5>
+                                    <div class="price">
+                                        ${product.SalePrice ? 
+                                            `<span class="text-muted text-decoration-line-through">${product.Price}KM</span> ${product.SalePrice}KM` : 
+                                            `${product.Price}KM`}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                                <div class="text-center">
+                                    <button class="btn btn-outline-dark mt-auto add-to-cart" 
+                                        data-id="${product.ProductID}" 
+                                        data-name="${product.Name}" 
+                                        data-price="${product.SalePrice || product.Price}">
+                                        Add to cart
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                            <div class="text-center">
-                                <a class="btn btn-outline-dark mt-auto" href="#product" onclick="storeProductDetails(${product.ProductID}, '${product.Name}', '${product.Price}', '${product.Images}', '${product.SalePrice || ''}', '${product.Description || ''}')">View Product</a>
-                            </div>
-                        </div>
                     </div>
-                </div>
-            `;
-            relatedItemsContainer.insertAdjacentHTML('beforeend', productCard);
-        });
-    } else {
-        relatedItemsContainer.innerHTML = '<p class="text-center">No related products found.</p>';
-    }
+                `;
+                relatedItemsContainer.insertAdjacentHTML('beforeend', productCard);
+            });
+            
+            attachAddToCartListeners();
+        } else {
+            relatedItemsContainer.innerHTML = '<p class="text-center">No related products found.</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading related products:', error);
+        relatedItemsContainer.innerHTML = '<p class="text-center">Error loading related products.</p>';
+    });
 }
 
 function displayUserProfile() {
@@ -805,7 +865,10 @@ function loadProductsIntoSelect() {
         .then(response => {
             console.log('Response received:', response);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                return response.text().then(text => {
+                    console.error('Server error response:', text);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                });
             }
             return response.json();
         })
@@ -813,26 +876,44 @@ function loadProductsIntoSelect() {
             console.log('Data received:', data);
             if (data.success) {
                 const select = document.getElementById('productSelect');
+                if (!select) {
+                    throw new Error('Product select element not found');
+                }
                 select.innerHTML = '';
                 data.products.forEach(product => {
                     const option = document.createElement('option');
-                    option.value = product.ProductID; // Ensure ProductID matches your database column
+                    option.value = product.ProductID;
                     option.textContent = `${product.Name} - Current Price: ${product.Price}KM${product.SalePrice ? ' (On Sale: ' + product.SalePrice + 'KM)' : ''}`;
                     select.appendChild(option);
                 });
             } else {
-                console.error('Failed to get products:', data.message);
+                throw new Error(data.message || 'Failed to get products');
             }
         })
-        .catch(error => console.error('Error loading products:', error));
+        .catch(error => {
+            console.error('Error loading products:', error);
+            const select = document.getElementById('productSelect');
+            if (select) {
+                select.innerHTML = '<option value="">Error loading products</option>';
+            }
+            alert('Failed to load products. Please try again.');
+        });
 }
 
 function updateProduct() {
     const formData = new FormData();
+    const productId = document.getElementById('productSelect').value;
+    const price = document.getElementById('updatePrice').value;
+    const salePrice = document.getElementById('updateSalePrice').value;
+
     formData.append('action', 'updateProduct');
-    formData.append('productId', document.getElementById('productSelect').value);
-    formData.append('price', document.getElementById('updatePrice').value);
-    formData.append('salePrice', document.getElementById('updateSalePrice').value);
+    formData.append('productId', productId);
+    formData.append('price', price);
+    
+    // Only append salePrice if it has a value
+    if (salePrice.trim() !== '') {
+        formData.append('salePrice', salePrice);
+    }
 
     console.log('Updating product with data:', {
         productId: formData.get('productId'),
@@ -844,20 +925,25 @@ function updateProduct() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {  
         if (data.success) {
             alert('Product updated successfully!');
             $('#updateProductModal').modal('hide');
             document.getElementById('updateProductForm').reset();
-            loadProductsIntoSelect(); // Refresh the product list
+            loadProductsIntoSelect(); 
         } else {
-            alert('Failed to update product');
+            alert(data.message || 'Failed to update product');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Failed to update product');
+        alert('Failed to update product: ' + error.message);
     });
 }
 
@@ -889,20 +975,31 @@ function deleteUser() {
 }
 
 function handleLogin(event) {
-    event.preventDefault();
+    event.preventDefault(); 
     
     const formData = new FormData();
     formData.append('email', document.getElementById('loginEmail').value);
     formData.append('password', document.getElementById('loginPassword').value);
 
+    console.log('Sending login request to:', '/WebProject/backend/dao/test.php');
+    console.log('Form data:', {
+        email: formData.get('email'),
+        password: formData.get('password')
+    });
+
     fetch('/WebProject/backend/dao/test.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('Login response:', data);
         if (data.success) {
             localStorage.setItem('loggedInUser', JSON.stringify(data.user));
+            localStorage.setItem('user_token', data.token);
             document.getElementById('loginForm').reset();
             updateNavBar();
             window.location.hash = '#dashboard';
@@ -911,34 +1008,34 @@ function handleLogin(event) {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Login error:', error);
         alert('Login failed');
     });
 }
 
 function logout() {
     localStorage.removeItem('loggedInUser');
+    localStorage.removeItem('user_token');
     updateNavBar();
     window.location.href = 'index.html';
 }
 
 function updateNavBar() {
-    const user = JSON.parse(localStorage.getItem('loggedInUser'));
-    const loginNavItem = document.getElementById('loginNavItem');
-    const registerNavItem = document.getElementById('registerNavItem');
-    const userDropdown = document.getElementById('userDropdown');
-    const userName = document.getElementById('userName');
+    const userData = localStorage.getItem('user_data');
 
-    if (user) {
-        if (loginNavItem) loginNavItem.classList.add('d-none');
-        if (registerNavItem) registerNavItem.classList.add('d-none');
-        if (userDropdown) userDropdown.classList.remove('d-none');
-        if (userName) userName.textContent = user.name;
+    if (userData) {
+        const user = JSON.parse(userData);
+        
+        // Hide login/register buttons
+        $("#loginNavItem, #registerNavItem").addClass('d-none');
+        
+        // Show user dropdown and update name
+        $("#userDropdown").removeClass('d-none');
+        $("#userName").text(user.Name || user.name);
     } else {
-        if (loginNavItem) loginNavItem.classList.remove('d-none');
-        if (registerNavItem) registerNavItem.classList.remove('d-none');
-        if (userDropdown) userDropdown.classList.add('d-none');
-        if (userName) userName.textContent = '';
+        $("#loginNavItem, #registerNavItem").removeClass('d-none');
+        $("#userDropdown").addClass('d-none');
+        $("#userName").text('');
     }
 }
 

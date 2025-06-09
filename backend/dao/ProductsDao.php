@@ -5,6 +5,17 @@
             parent::__construct("products");
         }
 
+        public function getAll() {
+        try {
+            $stmt = $this->connection->prepare("SELECT * FROM products ORDER BY Name");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in ProductsDao->getAll(): " . $e->getMessage());
+            throw $e;
+        }
+    }
+
         public function getByProductName($name) {
             $stmt = $this->connection->prepare("SELECT * FROM products WHERE Name LIKE :name");
             $searchName = "%".$name."%";
@@ -13,12 +24,16 @@
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
-        public function getByOnSale($onSale) {
-            $stmt = $this->connection->prepare("select * from products where OnSale = :OnSale");
-            $stmt->bindParam(':OnSale', $onSale);
-            $stmt->execute();
-            return $stmt->fetchAll();
-        }
+        public function getOnSaleProducts() {
+    try {
+        $stmt = $this->connection->prepare("SELECT * FROM products WHERE SalePrice IS NOT NULL AND SalePrice > 0");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        error_log("Error in getOnSaleProducts: " . $e->getMessage());
+        throw $e;
+    }
+}
 
         public function getDashboardProducts() {
             $stmt = $this->connection->prepare("SELECT * FROM products ORDER BY ProductID DESC LIMIT 8");
@@ -41,12 +56,6 @@
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result ? (int)$result['total'] : 0; // Ensure an integer is returned
-        }
-
-        public function getOnSaleProducts() {
-            $stmt = $this->connection->prepare("SELECT * FROM products WHERE SalePrice IS NOT NULL");
-            $stmt->execute();
-            return $stmt->fetchAll();
         }
 
         public function getPaginatedProductsByCategories($offset, $limit, $categories) {
